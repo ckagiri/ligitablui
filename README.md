@@ -5,14 +5,10 @@ A **working demo** of the football prediction league with **in-memory stubbed da
 ## Quick Start (30 seconds!)
 
 ```bash
-# 1. Extract
-tar -xzf ligitabl-stub.tar.gz
-cd ligitabl-stub
-
-# 2. Run
+# 1. Run
 mvn spring-boot:run
 
-# 3. Open browser
+# 2. Open browser
 # Visit: http://localhost:8080
 ```
 
