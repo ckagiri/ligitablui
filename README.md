@@ -2,16 +2,6 @@
 
 A **working demo** of the football prediction league with **in-memory stubbed data** - no database required!
 
-## Key Features Working
-
-✅ **HTMX Swap Animation** - Smooth 400ms cubic-bezier transitions
-✅ **Phase Switcher** - Dynamic leaderboard updates
-✅ **Swap Cooldown** - 24-hour timer that actually works
-✅ **Live Leaderboard** - 10 players with realistic data
-✅ **Standings Table** - 20 Premier League teams
-✅ **Matches View** - Finished and upcoming matches
-✅ **My Predictions** - Fully functional team swapping
-
 ## Quick Start (30 seconds!)
 
 ```bash
