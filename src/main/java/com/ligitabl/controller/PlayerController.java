@@ -81,7 +81,7 @@ public class PlayerController {
         }
 
         if (hxRequest != null && !hxRequest.isBlank()) {
-            return "predictions/me-improved :: predictionContent";
+            return "predictions/me-improved :: predictionPage";
         }
 
         return "predictions/me-improved";
