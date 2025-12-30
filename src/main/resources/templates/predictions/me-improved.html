@@ -253,13 +253,21 @@
                             </tbody>
                         </table>
                     </div>
-                   <div th:if="${!isCurrentRound && roundScore != null}" class="mt-4 text-center pb-4">
-                    <div class="inline-flex items-center px-4 py-2 bg-gray-100 rounded-lg">
-                        <span class="text-sm text-gray-600 mr-2">Round Score:</span>
-                        <span class="text-lg font-bold text-gray-900" th:text="${roundScore}">3</span>
-                        <span class="text-sm text-gray-500 ml-1">points</span>
+                  <div th:if="${!isCurrentRound && roundScore != null}" class="mt-4 text-center pb-4">
+                    <div class="inline-flex flex-col items-center px-6 py-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-center text-sm text-gray-600 mb-1">
+                          <span class="font-mono">200</span>
+                          <span class="mx-2">−</span>
+                          <span class="font-mono" th:text="${totalHits}">156</span>
+                          <span class="mx-2">=</span>
+                          <span class="font-mono font-bold text-gray-900" th:text="${roundScore}">44</span>
+                          <span class="ml-1">points</span>
+                      </div>
+                      <div class="text-xs text-gray-500">
+                          (Max: 200, Lost: <span th:text="${totalHits}">156</span>)
+                      </div>
                     </div>
-                </div>
+                  </div>
                 </div>
 
                 <!-- Actions Footer (only for current round) -->

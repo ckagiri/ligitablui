@@ -3,6 +3,7 @@ package com.ligitabl.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ligitabl.dto.Responses;
+import com.ligitabl.dto.Responses.PredictionRow;
 import com.ligitabl.service.InMemoryDataService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -48,6 +49,7 @@ public class PlayerController {
             model.addAttribute("canSwap", canSwap);
             model.addAttribute("isInitialPrediction", isInitialPrediction);
             model.addAttribute("roundScore", null);
+            model.addAttribute("totalHits", null);
 
             try {
                 model.addAttribute("predictionsJson", objectMapper.writeValueAsString(predictions));
@@ -57,12 +59,19 @@ public class PlayerController {
         } else {
             // Historical round - read-only
             var predictions = dataService.getMyPredictionForRound(round);
+            int totalHits = predictions.stream()
+              .filter(p -> p.getHit() != null)
+              .mapToInt(PredictionRow::getHit)
+              .sum();
+
+            int score = 200 - totalHits;
             model.addAttribute("predictions", predictions);
-            model.addAttribute("roundScore", dataService.getScoreForRound(round));
+            model.addAttribute("roundScore", score);
             model.addAttribute("swapStatus", null); // No editing allowed
 
             model.addAttribute("canSwap", false);
             model.addAttribute("isInitialPrediction", false);
+            model.addAttribute("totalHits", totalHits); // No editing allowed
 
             try {
                 model.addAttribute("predictionsJson", objectMapper.writeValueAsString(predictions));
