@@ -81,10 +81,10 @@ public class PlayerController {
         }
 
         if (hxRequest != null && !hxRequest.isBlank()) {
-            return "predictions/me-improved :: predictionPage";
+            return "predictions/me :: predictionPage";
         }
 
-        return "predictions/me-improved";
+        return "predictions/me";
     }
 
     @GetMapping("/predictions/me/swap-status")
