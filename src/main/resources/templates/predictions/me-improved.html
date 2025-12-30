@@ -25,164 +25,175 @@
         </div>
 
         <!-- Prediction Table with Alpine.js for interaction -->
-        <div class="bg-white rounded-lg shadow-sm mb-6"
-             x-data="{
-                 teams: [],
-                 originalTeams: [],
-                 selectedTeam: null,
-                 canSwap: [[${swapStatus.canSwap}]],
-                 isInitialPrediction: [[${swapStatus.lastSwapAt == 'Never'}]],
-                 
-                 init() {
-                     this.teams = [
-                         [[# th:each='pred : ${predictions}']]
-                         {
-                             position: [[${pred.position}]],
-                             code: '[[${pred.teamCode}]]',
-                             name: '[[${pred.teamName}]]',
-                             crestUrl: '[[${pred.crestUrl}]]',
-                             originalPosition: [[${pred.position}]]
-                         },
-                         [[/]]
-                     ];
-                     this.originalTeams = JSON.parse(JSON.stringify(this.teams));
-                 },
-                 
-                 isSelected(teamCode) {
-                     return this.selectedTeam === teamCode;
-                 },
-                 
-                 isDirty(teamCode) {
-                     const team = this.teams.find(t => t.code === teamCode);
-                     return team.position !== team.originalPosition;
-                 },
-                 
-                 getDirtyCount() {
-                     return this.teams.filter(t => this.isDirty(t.code)).length;
-                 },
-                 
-                 getSwapCount() {
-                     // Each swap moves 2 teams, so divide by 2
-                     return Math.floor(this.getDirtyCount() / 2);
-                 },
-                 
-                 getPositionChange(teamCode) {
-                     const team = this.teams.find(t => t.code === teamCode);
-                     const change = team.originalPosition - team.position;
-                     if (change === 0) return null;
-                     return change > 0 ? `↑${change}` : `↓${Math.abs(change)}`;
-                 },
-                 
-                 getSelectedTeamName() {
-                     if (!this.selectedTeam) return null;
-                     const team = this.teams.find(t => t.code === this.selectedTeam);
-                     return team ? team.name : null;
-                 },
-                 
-                 teamClick(teamCode) {
-                     if (!this.canSwap) return;
-                     
-                     if (this.selectedTeam === null) {
-                         // First selection - trigger pulse animation
-                         this.selectedTeam = teamCode;
-                         this.$nextTick(() => {
-                             const row = document.querySelector(`[data-team-code="${teamCode}"]`);
-                             if (row) {
-                                 row.classList.add('selected-pulse');
-                                 setTimeout(() => row.classList.remove('selected-pulse'), 300);
-                             }
-                         });
-                     } else if (this.selectedTeam === teamCode) {
-                         // Deselect
-                         this.selectedTeam = null;
-                     } else {
-                         // Swap teams - trigger swap animation
-                         const index1 = this.teams.findIndex(t => t.code === this.selectedTeam);
-                         const index2 = this.teams.findIndex(t => t.code === teamCode);
-                         
-                         // Trigger swap animation on both rows
-                         this.$nextTick(() => {
-                             const row1 = document.querySelector(`[data-team-code="${this.selectedTeam}"]`);
-                             const row2 = document.querySelector(`[data-team-code="${teamCode}"]`);
-                             
-                             if (row1) {
-                                 row1.classList.add('swapping');
-                                 setTimeout(() => row1.classList.remove('swapping'), 400);
-                             }
-                             if (row2) {
-                                 row2.classList.add('swapping');
-                                 setTimeout(() => row2.classList.remove('swapping'), 400);
-                             }
-                         });
-                         
-                         const temp = this.teams[index1];
-                         this.teams[index1] = this.teams[index2];
-                         this.teams[index2] = temp;
-                         
-                         this.teams.forEach((team, idx) => team.position = idx + 1);
-                         
-                         this.selectedTeam = null;
-                     }
-                 },
-                 
-                 reset() {
-                     this.teams = JSON.parse(JSON.stringify(this.originalTeams));
-                     this.selectedTeam = null;
-                 },
-                 
-                 canUpdate() {
-                     const swapCount = this.getSwapCount();
-                     if (swapCount === 0) return false;
-                     
-                     // After initial prediction: only 1 swap allowed per period
-                     if (!this.isInitialPrediction && swapCount > 1) {
-                         return false;  // Block if > 1 swap after initial
-                     }
-                     
-                     return this.canSwap;
-                 },
-                 
-                 exceedsLimit() {
-                     // After initial prediction, only 1 swap allowed
-                     return !this.isInitialPrediction && this.getSwapCount() > 1;
-                 },
-                 
-                 async submitChanges() {
-                     if (!this.canUpdate()) return;
-                     
-                     const teamCodes = this.teams.map(t => t.code);
-                     
-                     try {
-                         const response = await fetch('/predictions/swap-multiple', {
-                             method: 'POST',
-                             headers: {
-                                 'Content-Type': 'application/json',
-                             },
-                             body: JSON.stringify({ teamCodes: teamCodes })
-                         });
-                         
-                         if (response.ok) {
-                             window.location.reload();
-                         } else {
-                             alert('Failed to update prediction. Please try again.');
-                         }
-                     } catch (error) {
-                         console.error('Error:', error);
-                         alert('An error occurred. Please try again.');
-                     }
-                 }
-             }">
-            
+        <script th:inline="javascript">
+            window.__PREDICTIONS__ = /*[[${predictions}]]*/ [];
+            window.__SWAP_STATUS__ = /*[[${swapStatus}]]*/ {};
+
+            function predictionPage() {
+                return {
+                    teams: [],
+                    originalTeams: [],
+                    selectedTeam: null,
+                    canSwap: !!(window.__SWAP_STATUS__ && window.__SWAP_STATUS__.canSwap),
+                    isInitialPrediction: (window.__SWAP_STATUS__ && window.__SWAP_STATUS__.lastSwapAt) === 'Never',
+                    swapOperations: 0,
+
+                    init() {
+                        const preds = Array.isArray(window.__PREDICTIONS__) ? window.__PREDICTIONS__ : [];
+                        this.teams = preds.map(p => ({
+                            position: p.position,
+                            code: p.teamCode,
+                            name: p.teamName,
+                            crestUrl: p.crestUrl,
+                            originalPosition: p.position
+                        }));
+                        this.originalTeams = JSON.parse(JSON.stringify(this.teams));
+                        this.swapOperations = 0;
+                    },
+
+                    isSelected(teamCode) {
+                        return this.selectedTeam === teamCode;
+                    },
+
+                    isDirty(teamCode) {
+                        const team = this.teams.find(t => t.code === teamCode);
+                        return !!team && team.position !== team.originalPosition;
+                    },
+
+                    getDirtyCount() {
+                        return this.teams.filter(t => this.isDirty(t.code)).length;
+                    },
+
+                    getSwapCount() {
+                        // Return actual number of swap operations performed
+                        return this.swapOperations;
+                    },
+
+                    getPositionChange(teamCode) {
+                        const team = this.teams.find(t => t.code === teamCode);
+                        if (!team) return null;
+                        const change = team.originalPosition - team.position;
+                        if (change === 0) return null;
+                        return change > 0 ? `↑${change}` : `↓${Math.abs(change)}`;
+                    },
+
+                    getSelectedTeamName() {
+                        if (!this.selectedTeam) return null;
+                        const team = this.teams.find(t => t.code === this.selectedTeam);
+                        return team ? team.name : null;
+                    },
+
+                    teamClick(teamCode) {
+                        if (!this.canSwap) return;
+
+                        if (this.selectedTeam === null) {
+                            // First selection - trigger pulse animation
+                            this.selectedTeam = teamCode;
+                            this.$nextTick(() => {
+                                const row = document.querySelector(`[data-team-code='${teamCode}']`);
+                                if (row) {
+                                    row.classList.add('selected-pulse');
+                                    setTimeout(() => row.classList.remove('selected-pulse'), 300);
+                                }
+                            });
+                        } else if (this.selectedTeam === teamCode) {
+                            // Deselect
+                            this.selectedTeam = null;
+                        } else {
+                            // Swap teams - trigger swap animation
+                            const index1 = this.teams.findIndex(t => t.code === this.selectedTeam);
+                            const index2 = this.teams.findIndex(t => t.code === teamCode);
+
+                            // Trigger swap animation on both rows
+                            this.$nextTick(() => {
+                                const row1 = document.querySelector(`[data-team-code='${this.selectedTeam}']`);
+                                const row2 = document.querySelector(`[data-team-code='${teamCode}']`);
+
+                                if (row1) {
+                                    row1.classList.add('swapping');
+                                    setTimeout(() => row1.classList.remove('swapping'), 400);
+                                }
+                                if (row2) {
+                                    row2.classList.add('swapping');
+                                    setTimeout(() => row2.classList.remove('swapping'), 400);
+                                }
+                            });
+
+                            const temp = this.teams[index1];
+                            this.teams[index1] = this.teams[index2];
+                            this.teams[index2] = temp;
+
+                            this.teams.forEach((team, idx) => team.position = idx + 1);
+
+                            this.swapOperations += 1;
+
+                            this.selectedTeam = null;
+                        }
+                    },
+
+                    reset() {
+                        this.teams = JSON.parse(JSON.stringify(this.originalTeams));
+                        this.selectedTeam = null;
+                        this.swapOperations = 0;
+                    },
+
+                    canUpdate() {
+                        const swapCount = this.getSwapCount();
+                        if (swapCount === 0) return false;
+
+                        // After initial prediction: only 1 swap allowed per period
+                        if (!this.isInitialPrediction && swapCount > 1) {
+                            return false;  // Block if > 1 swap after initial
+                        }
+
+                        return this.canSwap;
+                    },
+
+                    exceedsLimit() {
+                        // After initial prediction, only 1 swap allowed
+                        return !this.isInitialPrediction && this.getSwapCount() > 1;
+                    },
+
+                    async submitChanges() {
+                        if (!this.canUpdate()) return;
+
+                        const teamCodes = this.teams.map(t => t.code);
+
+                        try {
+                            const response = await fetch('/predictions/swap-multiple', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ teamCodes: teamCodes })
+                            });
+
+                            if (response.ok) {
+                                window.location.reload();
+                            } else {
+                                alert('Failed to update prediction. Please try again.');
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            alert('An error occurred. Please try again.');
+                        }
+                    }
+                };
+            }
+        </script>
+
+        <div class="bg-white rounded-lg shadow-sm mb-6" x-data="predictionPage()">
+
             <!-- Contextual Instructions Banner -->
             <div class="px-6 pt-4">
                 <!-- Initial Prediction Mode -->
-                <div x-show="canSwap && isInitialPrediction" 
+                <div x-show="canSwap && isInitialPrediction"
                      class="contextual-banner bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                     <p class="text-sm text-blue-800">
                         <strong>Make your initial prediction!</strong> Click teams to swap their positions. You can make unlimited changes before submitting.
                     </p>
                 </div>
-                
+
                 <!-- First Swap Bonus -->
                 <div th:if="${swapStatus.canSwap and swapStatus.message.startsWith('🎁')}"
                      class="contextual-banner bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
@@ -190,7 +201,7 @@
                         <strong th:text="${swapStatus.message}">🎁 Bonus: You get one free change after your initial prediction!</strong>
                     </p>
                 </div>
-                
+
                 <!-- Active Selection State -->
                 <div x-show="canSwap && !isInitialPrediction && selectedTeam === null && getDirtyCount() === 0"
                      class="contextual-banner bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
@@ -198,40 +209,40 @@
                         Click a team to select it, then click another team to swap their positions.
                     </p>
                 </div>
-                
+
                 <!-- Team Selected - Waiting for Second -->
                 <div x-show="canSwap && selectedTeam !== null"
                      class="contextual-banner bg-blue-50 border border-blue-300 rounded-lg p-3 mb-4">
                     <p class="text-sm text-blue-800">
-                        <strong><span x-text="getSelectedTeamName()"></span> selected.</strong> 
+                        <strong><span x-text="getSelectedTeamName()"></span> selected.</strong>
                         Click another team to swap, or click again to deselect.
                     </p>
                 </div>
-                
+
                 <!-- Changes Made -->
                 <div x-show="canSwap && getDirtyCount() > 0 && selectedTeam === null && !exceedsLimit()"
                      class="contextual-banner bg-amber-50 border border-amber-300 rounded-lg p-3 mb-4">
                     <p class="text-sm text-amber-800">
-                        You've made <strong><span x-text="getSwapCount()"></span> swap(s)</strong>. 
+                        You've made <strong><span x-text="getSwapCount()"></span> swap(s)</strong>.
                         Review your changes below, then update to save or reset to undo.
                     </p>
                 </div>
-                
+
                 <!-- Too Many Swaps Warning (After Initial Prediction) -->
                 <div x-show="exceedsLimit()"
                      class="contextual-banner bg-red-50 border border-red-300 rounded-lg p-3 mb-4">
                     <p class="text-sm text-red-800">
-                        <strong>Only 1 swap allowed per period!</strong> 
-                        You've made <span x-text="getSwapCount()"></span> swaps. 
+                        <strong>Only 1 swap allowed per period!</strong>
+                        You've made <span x-text="getSwapCount()"></span> swaps.
                         <a @click="reset()" class="underline cursor-pointer">Reset</a> to undo extras.
                     </p>
                 </div>
-                
+
                 <!-- Cooldown Active -->
                 <div x-show="!canSwap"
                      class="contextual-banner bg-yellow-50 border border-yellow-300 rounded-lg p-3 mb-4">
                     <p class="text-sm text-yellow-800">
-                        <strong>Cooldown active.</strong> You've already submitted changes for this period. 
+                        <strong>Cooldown active.</strong> You've already submitted changes for this period.
                         <span th:text="${swapStatus.message}">Next modification available in 23h.</span>
                     </p>
                 </div>
@@ -314,7 +325,7 @@
                             Update Prediction (<span class="button-counter" x-text="getSwapCount()"></span>)
                         </span>
                     </button>
-                    
+
                     <!-- Secondary Action: Reset Link -->
                     <button @click="reset()"
                             x-show="getSwapCount() > 0"
