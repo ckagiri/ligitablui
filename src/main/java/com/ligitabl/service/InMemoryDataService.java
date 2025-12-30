@@ -13,18 +13,18 @@ import java.util.List;
 
 @Service
 public class InMemoryDataService {
-    
+
     private final List<Team> teams;
     private final List<PredictionRow> myPrediction;
     private Instant lastSwapTime = null; // null = never swapped (initial prediction mode)
     private boolean initialPredictionMade = false;
     private int swapCount = 0; // Track number of swaps after initial prediction
-    
+
     public InMemoryDataService() {
         this.teams = initializeTeams();
         this.myPrediction = initializeMyPrediction();
     }
-    
+
     private List<Team> initializeTeams() {
         return List.of(
             new Team("MCI", "Manchester City", "/images/crests/mci.png"),
@@ -49,7 +49,7 @@ public class InMemoryDataService {
             new Team("SHU", "Sheffield United", "/images/crests/shu.png")
         );
     }
-    
+
     private List<PredictionRow> initializeMyPrediction() {
         List<PredictionRow> prediction = new ArrayList<>();
         int position = 1;
@@ -58,7 +58,7 @@ public class InMemoryDataService {
         }
         return prediction;
     }
-    
+
     public List<LeaderboardEntry> getLeaderboard(String phase) {
         return List.of(
             new LeaderboardEntry(1, "Alice Wonder", 1850, 45, 23, 198, 0),
@@ -73,11 +73,35 @@ public class InMemoryDataService {
             new LeaderboardEntry(10, "Jack Anderson", 1775, 40, 22, 182, 1)
         );
     }
-    
+
     public List<PredictionRow> getMyPrediction() {
         return new ArrayList<>(myPrediction);
     }
-    
+
+    public List<PredictionRow> getMyPredictionForRound(int round) {
+        // TODO: In real app, fetch from database based on round
+        // For now, return current prediction as stub for all historical rounds
+        return getMyPrediction();
+    }
+
+    public Integer getScoreForRound(int round) {
+        // TODO: In real app, fetch actual score from database
+        // Stub scores for demo purposes
+        java.util.Map<Integer, Integer> scores = java.util.Map.of(
+            18, 42,
+            17, 38,
+            16, 45,
+            15, 40,
+            14, 35
+        );
+        return scores.getOrDefault(round, null);
+    }
+
+    public int getCurrentRound() {
+        // TODO: Get from database or configuration
+        return 19;
+    }
+
     public void swapTeams(String teamA, String teamB) {
         // Find positions
         int posA = -1, posB = -1;
@@ -85,28 +109,28 @@ public class InMemoryDataService {
             if (myPrediction.get(i).getTeamCode().equals(teamA)) posA = i;
             if (myPrediction.get(i).getTeamCode().equals(teamB)) posB = i;
         }
-        
+
         if (posA != -1 && posB != -1) {
             // Swap
             PredictionRow temp = myPrediction.get(posA);
             myPrediction.set(posA, myPrediction.get(posB));
             myPrediction.set(posB, temp);
-            
+
             // Update positions
             myPrediction.get(posA).setPosition(posA + 1);
             myPrediction.get(posB).setPosition(posB + 1);
-            
+
             // Only count swaps AFTER initial prediction
             if (initialPredictionMade) {
                 swapCount++;
             }
-            
+
             // Update last swap time
             lastSwapTime = Instant.now();
             initialPredictionMade = true;
         }
     }
-    
+
     public void updatePredictionOrder(List<String> teamCodes) {
         // Count how many teams changed position
         int changedTeams = 0;
@@ -116,21 +140,21 @@ public class InMemoryDataService {
                 .filter(p -> p.getTeamCode().equals(code))
                 .findFirst()
                 .orElse(null);
-            
+
             if (originalTeam != null && originalTeam.getPosition() != (i + 1)) {
                 changedTeams++;
             }
         }
-        
+
         // Validate: After initial prediction, only 1 swap (2 teams) allowed
         int swapsAttempted = changedTeams / 2;
         if (initialPredictionMade && swapsAttempted > 1) {
             throw new IllegalArgumentException("Only 1 swap allowed per period. You tried " + swapsAttempted + " swaps.");
         }
-        
+
         // Reorder prediction based on new team code sequence
         List<PredictionRow> newPrediction = new ArrayList<>();
-        
+
         for (int i = 0; i < teamCodes.size(); i++) {
             String code = teamCodes.get(i);
             // Find the team with this code
@@ -138,30 +162,30 @@ public class InMemoryDataService {
                 .filter(p -> p.getTeamCode().equals(code))
                 .findFirst()
                 .orElse(null);
-            
+
             if (team != null) {
                 // Create new row with updated position
                 newPrediction.add(new PredictionRow(i + 1, team.getTeamCode(), team.getTeamName(), team.getCrestUrl()));
             }
         }
-        
+
         // Replace old prediction
         myPrediction.clear();
         myPrediction.addAll(newPrediction);
-        
+
         // Only count swaps AFTER initial prediction
         if (initialPredictionMade) {
             swapCount++;
         }
-        
+
         // Update last swap time
         lastSwapTime = Instant.now();
         initialPredictionMade = true;
     }
-    
+
     public SwapStatusResponse getSwapStatus() {
         Instant now = Instant.now();
-        
+
         // Initial prediction mode - unlimited changes
         if (!initialPredictionMade) {
             return new SwapStatusResponse(
@@ -173,12 +197,12 @@ public class InMemoryDataService {
                 "Make your initial prediction! You can make unlimited changes before submitting."
             );
         }
-        
+
         // First swap exception - one free swap after initial prediction
         if (swapCount == 0) {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
                 .withZone(ZoneId.systemDefault());
-            
+
             return new SwapStatusResponse(
                 "OPEN",
                 true,
@@ -188,15 +212,15 @@ public class InMemoryDataService {
                 "🎁 Bonus: You get one free change after your initial prediction!"
             );
         }
-        
+
         // After first swap - 24 hour cooldown applies
         long hoursSinceLastSwap = ChronoUnit.HOURS.between(lastSwapTime, now);
         long minutesSinceLastSwap = ChronoUnit.MINUTES.between(lastSwapTime, now);
         boolean canSwap = hoursSinceLastSwap >= 24;
-        
+
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
             .withZone(ZoneId.systemDefault());
-        
+
         if (canSwap) {
             return new SwapStatusResponse(
                 "OPEN",
@@ -210,7 +234,7 @@ public class InMemoryDataService {
             // Format time naturally
             long hoursRemaining = 24 - hoursSinceLastSwap;
             long minutesRemaining = (24 * 60) - minutesSinceLastSwap;
-            
+
             String timeDisplay;
             if (hoursRemaining >= 2) {
                 timeDisplay = hoursRemaining + "h";
@@ -229,7 +253,7 @@ public class InMemoryDataService {
                     timeDisplay = minutesRemaining + "m";
                 }
             }
-            
+
             Instant nextSwapTime = lastSwapTime.plus(24, ChronoUnit.HOURS);
             return new SwapStatusResponse(
                 "OPEN",
@@ -241,7 +265,7 @@ public class InMemoryDataService {
             );
         }
     }
-    
+
     public LatestResultResponse getLatestResult() {
         HitDistribution dist = new HitDistribution(
             3, 5, 8, 4,
@@ -250,7 +274,7 @@ public class InMemoryDataService {
         );
         return new LatestResultResponse(10, 367, 5, 2, dist);
     }
-    
+
     public List<StandingsRow> getStandings() {
         return List.of(
             new StandingsRow(1, "MCI", "Manchester City", "/images/crests/mci.png", 19, 14, 3, 2, 45, 42, 15, 27),
@@ -275,7 +299,7 @@ public class InMemoryDataService {
             new StandingsRow(20, "SHU", "Sheffield United", "/images/crests/shu.png", 19, 1, 3, 15, 6, 14, 48, -34)
         );
     }
-    
+
     public List<Match> getMatches() {
         return List.of(
             new Match("Manchester City", "Arsenal", "2", "1", "Sat, Dec 28, 12:30", "FINISHED"),
@@ -285,7 +309,7 @@ public class InMemoryDataService {
             new Match("West Ham", "Brighton", "", "", "Sun, Dec 29, 16:30", "SCHEDULED")
         );
     }
-    
+
     public List<PredictionRow> getUserPrediction(String userId) {
         // Return a slightly different prediction for demo
         List<PredictionRow> userPred = new ArrayList<>();
@@ -295,7 +319,7 @@ public class InMemoryDataService {
         Team temp = shuffled.get(0);
         shuffled.set(0, shuffled.get(1));
         shuffled.set(1, temp);
-        
+
         for (Team team : shuffled) {
             userPred.add(new PredictionRow(position++, team.getCode(), team.getName(), team.getCrestUrl()));
         }

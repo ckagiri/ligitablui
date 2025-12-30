@@ -283,5 +283,171 @@
             }
         });
     </script>
+
+    <script>
+        window.Ligitabl = window.Ligitabl || {};
+
+        window.Ligitabl.predictionPage = function (el) {
+            const predictionsRaw = el?.dataset?.predictions ?? '[]';
+            const canSwapRaw = el?.dataset?.canSwap ?? 'false';
+            const isInitialRaw = el?.dataset?.isInitialPrediction ?? 'false';
+
+            let predictions;
+            try {
+                predictions = JSON.parse(predictionsRaw);
+            } catch {
+                predictions = [];
+            }
+
+            const canSwap = canSwapRaw === 'true' || canSwapRaw === 'True';
+            const isInitialPrediction = isInitialRaw === 'true' || isInitialRaw === 'True';
+
+            return {
+                teams: [],
+                originalTeams: [],
+                selectedTeam: null,
+                swapOperations: 0,
+                canSwap,
+                isInitialPrediction,
+
+                init() {
+                    this.teams = (Array.isArray(predictions) ? predictions : []).map((p) => ({
+                        position: p.position,
+                        code: p.teamCode,
+                        name: p.teamName,
+                        crestUrl: p.crestUrl,
+                        originalPosition: p.position,
+                    }));
+                    this.originalTeams = JSON.parse(JSON.stringify(this.teams));
+                    this.swapOperations = 0;
+                },
+
+                isSelected(teamCode) {
+                    return this.selectedTeam === teamCode;
+                },
+
+                isDirty(teamCode) {
+                    const team = this.teams.find((t) => t.code === teamCode);
+                    return team?.position !== team?.originalPosition;
+                },
+
+                getDirtyCount() {
+                    return this.teams.filter((t) => this.isDirty(t.code)).length;
+                },
+
+                getSwapCount() {
+                    return this.swapOperations;
+                },
+
+                getPositionChange(teamCode) {
+                    const team = this.teams.find((t) => t.code === teamCode);
+                    if (!team) return null;
+                    const change = team.originalPosition - team.position;
+                    if (change === 0) return null;
+                    return change > 0 ? `↑${change}` : `↓${Math.abs(change)}`;
+                },
+
+                getSelectedTeamName() {
+                    if (!this.selectedTeam) return null;
+                    const team = this.teams.find((t) => t.code === this.selectedTeam);
+                    return team ? team.name : null;
+                },
+
+                teamClick(teamCode) {
+                    if (!this.canSwap) return;
+
+                    if (this.selectedTeam === null) {
+                        this.selectedTeam = teamCode;
+                        this.$nextTick(() => {
+                            const row = document.querySelector(`[data-team-code='${teamCode}']`);
+                            if (row) {
+                                row.classList.add('selected-pulse');
+                                setTimeout(() => row.classList.remove('selected-pulse'), 300);
+                            }
+                        });
+                        return;
+                    }
+
+                    if (this.selectedTeam === teamCode) {
+                        this.selectedTeam = null;
+                        return;
+                    }
+
+                    const index1 = this.teams.findIndex((t) => t.code === this.selectedTeam);
+                    const index2 = this.teams.findIndex((t) => t.code === teamCode);
+                    if (index1 < 0 || index2 < 0) {
+                        this.selectedTeam = null;
+                        return;
+                    }
+
+                    this.$nextTick(() => {
+                        const row1 = document.querySelector(`[data-team-code='${this.selectedTeam}']`);
+                        const row2 = document.querySelector(`[data-team-code='${teamCode}']`);
+                        if (row1) {
+                            row1.classList.add('swapping');
+                            setTimeout(() => row1.classList.remove('swapping'), 400);
+                        }
+                        if (row2) {
+                            row2.classList.add('swapping');
+                            setTimeout(() => row2.classList.remove('swapping'), 400);
+                        }
+                    });
+
+                    const temp = this.teams[index1];
+                    this.teams[index1] = this.teams[index2];
+                    this.teams[index2] = temp;
+                    this.teams.forEach((team, idx) => (team.position = idx + 1));
+                    this.swapOperations++;
+                    this.selectedTeam = null;
+                },
+
+                reset() {
+                    this.teams = JSON.parse(JSON.stringify(this.originalTeams));
+                    this.selectedTeam = null;
+                    this.swapOperations = 0;
+                },
+
+                canUpdate() {
+                    const swapCount = this.getSwapCount();
+                    if (swapCount === 0) return false;
+                    if (!this.isInitialPrediction && swapCount > 1) return false;
+                    return this.canSwap;
+                },
+
+                exceedsLimit() {
+                    return !this.isInitialPrediction && this.getSwapCount() > 1;
+                },
+
+                submitChanges() {
+                    const teamCodes = this.teams.map((t) => t.code);
+
+                    fetch('/predictions/swap-multiple', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ teamCodes }),
+                    })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            if (data.success) {
+                                window.location.reload();
+                            }
+                        })
+                        .catch((error) => {
+                            console.error('Error:', error);
+                            alert('Failed to update prediction');
+                        });
+                },
+            };
+        };
+
+        document.body.addEventListener('htmx:afterSwap', (event) => {
+            if (!window.Alpine || !event.detail?.target) return;
+            const target = event.detail.target;
+            if (!target.querySelector || !target.querySelector('[x-data]')) return;
+            window.Alpine.initTree(target);
+        });
+    </script>
 </body>
 </html>
