@@ -25,6 +25,7 @@ public class PlayerController {
     @GetMapping("/predictions/me")
     public String myPredictions(
             @RequestParam(required = false, defaultValue = "19") Integer round,
+            @RequestHeader(value = "HX-Request", required = false) String hxRequest,
             Model model) {
 
         int currentRound = dataService.getCurrentRound();
@@ -68,6 +69,10 @@ public class PlayerController {
             } catch (JsonProcessingException e) {
                 throw new IllegalStateException("Failed to serialize predictions", e);
             }
+        }
+
+        if (hxRequest != null && !hxRequest.isBlank()) {
+            return "predictions/me-improved :: predictionContent";
         }
 
         return "predictions/me-improved";

@@ -30,8 +30,8 @@
                     <div class="flex items-center space-x-2">
                         <!-- Previous Button -->
                         <button th:attr="hx-get=@{/predictions/me(round=${viewingRound - 1})}"
-                                hx-target="#prediction-content"
-                                hx-swap="innerHTML swap:300ms"
+                            hx-target="#prediction-content"
+                            hx-swap="outerHTML swap:300ms"
                                 th:disabled="${viewingRound <= 1}"
                                 th:classappend="${viewingRound <= 1 ? 'opacity-50 cursor-not-allowed' : ''}"
                                 class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition disabled:hover:bg-white">
@@ -45,7 +45,7 @@
                         <select th:attr="hx-get=@{/predictions/me}"
                                 hx-trigger="change"
                                 hx-target="#prediction-content"
-                                hx-swap="innerHTML swap:300ms"
+                            hx-swap="outerHTML swap:300ms"
                                 hx-include="this"
                                 name="round"
                                 class="form-select block px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
@@ -59,8 +59,8 @@
 
                         <!-- Next Button -->
                         <button th:attr="hx-get=@{/predictions/me(round=${viewingRound + 1})}"
-                                hx-target="#prediction-content"
-                                hx-swap="innerHTML swap:300ms"
+                            hx-target="#prediction-content"
+                            hx-swap="outerHTML swap:300ms"
                                 th:disabled="${viewingRound >= currentRound}"
                                 th:classappend="${viewingRound >= currentRound ? 'opacity-50 cursor-not-allowed' : ''}"
                                 class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition disabled:hover:bg-white">
@@ -75,7 +75,7 @@
                     <button th:if="${!isCurrentRound}"
                             th:attr="hx-get=@{/predictions/me(round=${currentRound})}"
                             hx-target="#prediction-content"
-                            hx-swap="innerHTML swap:300ms"
+                            hx-swap="outerHTML swap:300ms"
                             class="inline-flex items-center px-3 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition">
                         Jump to Current →
                     </button>
@@ -84,7 +84,7 @@
         </div>
 
         <!-- Prediction Table with Alpine.js for interaction -->
-        <div id="prediction-content">
+        <div id="prediction-content" th:fragment="predictionContent">
             <div class="bg-white rounded-lg shadow-sm mb-6"
                  x-data="Ligitabl.predictionPage($el)"
                  th:attr="data-predictions=${predictionsJson}, data-can-swap=${canSwap}, data-is-initial-prediction=${isInitialPrediction}">
