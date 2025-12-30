@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' | Ligitabl'">Ligitabl</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- Alpine.js for small interactions -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <style>
+        /* HTMX Swap Animations */
+        .htmx-swapping {
+            opacity: 0;
+            transition: opacity 300ms ease-out;
+        }
+        
+        .htmx-settling {
+            opacity: 1;
+            transition: opacity 300ms ease-in;
+        }
+        
+        /* Prediction Table Row Base Transition */
+        .prediction-row {
+            transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Micro-Animation 1: Team Swap - Smooth position change */
+        @keyframes swap-slide {
+            0% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-3px);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+            100% {
+                transform: translateY(0);
+            }
+        }
+        
+        .prediction-row.swapping {
+            animation: swap-slide 400ms cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: #fef3c7;
+        }
+        
+        /* Micro-Animation 2: Selection Pulse - Gentle feedback on click */
+        @keyframes selection-pulse {
+            0% {
+                transform: scale(1);
+            }
+            40% {
+                transform: scale(1.01);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        
+        .prediction-row.selected-pulse {
+            animation: selection-pulse 300ms ease-out;
+        }
+        
+        /* Micro-Animation 3: Position Change Indicator Pop-in */
+        @keyframes position-pop-in {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            60% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .position-change {
+            display: inline-block;
+            animation: position-pop-in 250ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        /* Micro-Animation 4: Button State Transitions */
+        button, .btn {
+            transition: all 200ms ease-in-out;
+        }
+        
+        button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+        
+        /* Button counter fade-in */
+        @keyframes counter-fade-in {
+            from {
+                opacity: 0;
+                transform: translateX(-3px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .button-counter {
+            animation: counter-fade-in 200ms ease-out;
+        }
+        
+        /* Micro-Animation 5: Banner Transitions */
+        .contextual-banner {
+            animation: banner-fade-in 200ms ease-out;
+        }
+        
+        @keyframes banner-fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Hover Effects */
+        .prediction-row:hover:not(.no-hover) {
+            transform: translateX(2px);
+        }
+        
+        /* Loading States */
+        .htmx-request .htmx-indicator {
+            display: inline;
+        }
+        
+        .htmx-indicator {
+            display: none;
+        }
+        
+        /* Smooth height transitions */
+        [hx-boost] {
+            transition: all 200ms ease;
+        }
+        
+        /* Form elements */
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+        }
+        
+        /* Success state animation */
+        @keyframes success-bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .success-state {
+            animation: success-bounce 400ms ease-out;
+        }
+        
+        /* LIVE match pulsing indicator */
+        @keyframes pulse-live {
+            0%, 100% { 
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.6;
+                transform: scale(0.95);
+            }
+        }
+        
+        .live-indicator {
+            display: inline-block;
+            animation: pulse-live 1.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a th:href="@{/}" class="text-2xl font-bold text-indigo-600">
+                        ⚽ Ligitabl
+                    </a>
+                    <div class="hidden md:flex ml-10 space-x-4">
+                        <a th:href="@{/leaderboard}" 
+                           class="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition">
+                            Leaderboard
+                        </a>
+                        <a th:href="@{/seasons/current/standings}" 
+                           class="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition">
+                            Standings
+                        </a>
+                        <a th:href="@{/seasons/current/matches}" 
+                           class="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition">
+                            Matches
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <a th:href="@{/predictions/me}" 
+                       class="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition">
+                        My Predictions
+                    </a>
+                    <a th:href="@{/auth/login}" 
+                       class="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition">
+                        Login
+                    </a>
+                    <a th:href="@{/auth/register}" 
+                       class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition">
+                        Sign Up
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Flash Messages -->
+        <div th:if="${message}" 
+             th:classappend="${messageType == 'success' ? 'bg-green-50 border-green-400 text-green-800' : (messageType == 'error' ? 'bg-red-50 border-red-400 text-red-800' : 'bg-blue-50 border-blue-400 text-blue-800')}"
+             class="border-l-4 p-4 mb-6 rounded">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg th:if="${messageType == 'success'}" class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <svg th:if="${messageType == 'error'}" class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                    </svg>
+                    <svg th:unless="${messageType == 'success' or messageType == 'error'}" class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm" th:text="${message}">Message here</p>
+                </div>
+            </div>
+        </div>
+        
+        <div layout:fragment="content">
+            <!-- Page content goes here -->
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="text-center text-gray-500 text-sm">
+                <p>&copy; 2024 Ligitabl Prediction League. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Additional Scripts -->
+    <script>
+        // HTMX Configuration
+        document.body.addEventListener('htmx:configRequest', (event) => {
+            event.detail.headers['X-CSRF-TOKEN'] = document.querySelector('meta[name="_csrf"]')?.content;
+        });
+        
+        // Smooth scroll on HTMX navigation
+        document.body.addEventListener('htmx:afterSwap', (event) => {
+            if (event.detail.target.id === 'main-content') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+    </script>
+</body>
+</html>

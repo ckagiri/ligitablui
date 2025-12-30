@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<body>
+<div layout:fragment="content">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Prediction Table (Left Side - 2/3 width) -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-sm">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-2xl font-bold text-gray-900">My Prediction</h1>
+                        <div class="flex items-center space-x-3">
+                            <!-- Swap Status Badge -->
+                            <span th:if="${swapStatus.canSwap}" 
+                                  class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                🟢 Ready to Swap
+                            </span>
+                            <span th:unless="${swapStatus.canSwap}" 
+                                  class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                ⏰ [[${swapStatus.hoursRemaining}]]h remaining
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prediction Table -->
+                <div class="px-6 py-4">
+                    <div th:replace="~{fragments/prediction-table :: #prediction-table}"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Swap Controls & Status (Right Side - 1/3 width) -->
+        <div class="lg:col-span-1">
+            <!-- Swap Controls -->
+            <div class="bg-white rounded-lg shadow-sm mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Make a Swap</h2>
+                </div>
+                <div class="px-6 py-4">
+                    <form id="swap-form"
+                          th:action="@{/predictions/swap}"
+                          method="post"
+                          hx-post="/predictions/swap"
+                          hx-target="#prediction-table"
+                          hx-swap="outerHTML swap:400ms">
+                        
+                        <div class="space-y-4">
+                            <!-- Selected Teams Display -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Team A
+                                </label>
+                                <select name="teamA" required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">Select Team A</option>
+                                    <option th:each="pred : ${predictions}" 
+                                            th:value="${pred.teamCode}"
+                                            th:text="${pred.position + '. ' + pred.teamName}">
+                                        1. Arsenal
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="flex justify-center">
+                                <svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                </svg>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Team B
+                                </label>
+                                <select name="teamB" required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">Select Team B</option>
+                                    <option th:each="pred : ${predictions}" 
+                                            th:value="${pred.teamCode}"
+                                            th:text="${pred.position + '. ' + pred.teamName}">
+                                        2. Liverpool
+                                    </option>
+                                </select>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <button 
+                                type="submit"
+                                th:disabled="${!swapStatus.canSwap}"
+                                th:class="${swapStatus.canSwap ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-300 cursor-not-allowed'}"
+                                class="w-full text-white px-4 py-2 rounded-md font-medium transition">
+                                <span class="htmx-indicator">
+                                    <svg class="inline animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </span>
+                                Confirm Swap
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Swap Status Detail -->
+            <div class="bg-white rounded-lg shadow-sm">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Swap Status</h2>
+                </div>
+                <div class="px-6 py-4">
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Round Status:</span>
+                            <span class="font-medium text-green-600" th:text="${swapStatus.roundStatus}">OPEN</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Can Swap:</span>
+                            <span th:if="${swapStatus.canSwap}" class="font-medium text-green-600">Yes</span>
+                            <span th:unless="${swapStatus.canSwap}" class="font-medium text-red-600">No</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Next Available:</span>
+                            <span th:if="${swapStatus.canSwap}" class="font-medium text-green-600">Now!</span>
+                            <span th:unless="${swapStatus.canSwap}" 
+                                  class="font-medium text-gray-900"
+                                  th:text="${#numbers.formatDecimal(swapStatus.hoursRemaining, 1, 1) + 'h'}">
+                                14.5h
+                            </span>
+                        </div>
+                        <div class="mt-4 p-3 bg-blue-50 rounded-md">
+                            <p class="text-xs text-blue-800" th:text="${swapStatus.message}">
+                                You can make a swap now!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
