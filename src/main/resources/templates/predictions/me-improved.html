@@ -49,6 +49,7 @@
                                 hx-include="this"
                                 name="round"
                                 class="form-select block px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+
                             <option th:each="r : ${#numbers.sequence(1, currentRound)}"
                                     th:value="${r}"
                                     th:selected="${r == viewingRound}"
@@ -178,10 +179,17 @@
                                     <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Team
                                     </th>
+                                    <!-- Show Hit and Pos columns only on historical rounds -->
+                                    <th th:if="${!isCurrentRound}" scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                                        Hit
+                                    </th>
+                                    <th th:if="${!isCurrentRound}" scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider w-20">
+                                        Pos
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                <template x-for="team in teams" :key="team.code">
+                                <template th:if="${isCurrentRound}" x-for="team in teams" :key="team.code">
                                     <tr @click="teamClick(team.code)"
                                         :data-team-code="team.code"
                                         :class="{
@@ -222,9 +230,36 @@
                                         </td>
                                     </tr>
                                 </template>
+                                <!-- Historical Round: Static table with Hit and Pos columns -->
+                                <tr th:if="${!isCurrentRound}" th:each="pred : ${predictions}">
+                                    <td class="px-3 py-4 whitespace-nowrap text-sm font-bold text-gray-900"
+                                        th:text="${pred.position}">1</td>
+                                    <td class="px-3 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="h-8 w-8 mr-3 bg-gray-200 rounded flex items-center justify-center text-xs font-bold"
+                                                  th:text="${pred.teamCode}">MCI</div>
+                                            <div class="text-sm font-medium text-gray-900" th:text="${pred.teamName}">Manchester City</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-3 py-4 whitespace-nowrap text-right">
+                                        <span th:if="${pred.hit != null}"
+                                              th:classappend="${pred.hit == 0 ? 'text-green-600 font-bold' : 'text-red-600'}"
+                                              class="text-sm font-semibold"
+                                              th:text="${pred.hit}">0</span>
+                                    </td>
+                                    <td class="px-3 py-4 whitespace-nowrap text-right text-sm text-gray-400"
+                                        th:text="${pred.actualPosition}">1</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
+                   <div th:if="${!isCurrentRound && roundScore != null}" class="mt-4 text-center pb-4">
+                    <div class="inline-flex items-center px-4 py-2 bg-gray-100 rounded-lg">
+                        <span class="text-sm text-gray-600 mr-2">Round Score:</span>
+                        <span class="text-lg font-bold text-gray-900" th:text="${roundScore}">3</span>
+                        <span class="text-sm text-gray-500 ml-1">points</span>
+                    </div>
+                </div>
                 </div>
 
                 <!-- Actions Footer (only for current round) -->
