@@ -525,7 +525,12 @@
 
         (function () {
             window.Ligitabl = window.Ligitabl || {};
-            window.Ligitabl.resultsBannerDismissed = false;
+            const dismissedKey = 'ligitabl.resultsBannerDismissed';
+            window.Ligitabl.resultsBannerDismissed = sessionStorage.getItem(dismissedKey) === '1';
+
+            if (window.Ligitabl.resultsBannerDismissed) {
+                document.getElementById('results-banner')?.remove();
+            }
 
             document.body.addEventListener('htmx:beforeRequest', (event) => {
                 const elt = event.detail?.elt;
@@ -539,11 +544,19 @@
                 if (!host) return;
 
                 window.Ligitabl.resultsBannerDismissed = true;
+                sessionStorage.setItem(dismissedKey, '1');
 
                 host.remove();
             }
 
             document.addEventListener('click', (event) => {
+                const resetDemo = event.target?.closest?.('[data-reset-demo="true"]');
+                if (resetDemo) {
+                    window.Ligitabl.resultsBannerDismissed = false;
+                    sessionStorage.removeItem(dismissedKey);
+                    return;
+                }
+
                 const trigger = event.target?.closest?.('[data-dismiss-results-banner="true"]');
                 if (!trigger) return;
                 dismissResultsBanner();

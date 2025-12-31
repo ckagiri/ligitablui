@@ -13,6 +13,7 @@
                         My Prediction - Gameweek <span th:text="${viewingRound}">19</span>
                         <span th:if="${isCurrentRound}" class="text-base font-normal text-green-600">(Current)</span>
                         <a th:href="@{/predictions/demo-reset}"
+                                                    data-reset-demo="true"
                           class="text-xs text-gray-400 hover:text-gray-600 underline">
                             Reset Demo
                         </a>
