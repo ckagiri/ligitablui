@@ -8,6 +8,18 @@ public class Responses {
 
   @Data
   @AllArgsConstructor
+  public static class UserDetailResponse {
+    private String userId;
+    private String displayName;
+    private Integer position;
+    private Integer totalScore;
+    private Integer roundScore;
+    private Integer totalSwaps;
+    private Integer movement;
+    private List<PredictionRow> currentPrediction;
+  }
+  @Data
+  @AllArgsConstructor
   public static class LeaderboardEntry {
     private Integer position;
     private String userId;
@@ -55,6 +67,7 @@ public class Responses {
     private Integer position;
     private Integer movement;
     private HitDistribution hitDistribution;
+    private boolean viewed;
   }
 
   @Data
@@ -64,10 +77,6 @@ public class Responses {
     private Integer closeCalls;
     private Integer nearMisses;
     private Integer bigMisses;
-    private String bestTeam;
-    private Integer bestHit;
-    private String worstTeam;
-    private Integer worstHit;
   }
 
   @Data

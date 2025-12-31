@@ -5,6 +5,13 @@
 <body>
 <div layout:fragment="content">
     <div id="prediction-page" th:fragment="predictionPage" class="max-w-4xl mx-auto">
+        <!-- Results Banner (loads via HTMX if latest result available) -->
+        <div id="results-banner"
+             hx-get="/predictions/me/latest-result-banner"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+        </div>
+
         <!-- Page Header with Round Navigation -->
         <div class="bg-white rounded-lg shadow-sm mb-6">
             <div class="px-6 py-4 border-b border-gray-200">
@@ -84,14 +91,6 @@
                     </button>
                 </div>
             </div>
-        </div>
-
-        <!-- Results Banner (loads via HTMX if latest result available) -->
-        <div id="results-banner"
-             hx-get="/predictions/me/latest-result-banner"
-             hx-trigger="load"
-             hx-swap="innerHTML">
-            <!-- Banner content loaded via HTMX -->
         </div>
 
         <!-- Prediction Table with Alpine.js for interaction -->

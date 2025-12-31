@@ -1,6 +1,7 @@
 package com.ligitabl.controller;
 
 import com.ligitabl.dto.Responses.LeaderboardEntry;
+import com.ligitabl.dto.Responses.UserDetailResponse;
 import com.ligitabl.service.InMemoryDataService;
 
 import java.util.List;
@@ -39,7 +40,7 @@ public class PublicController {
 
     // Get current user's position
     String currentUserId = "current-user-id"; // TODO: Get from session/auth
-    String currentUserName = "You"; // TODO: Get from session/auth
+    String currentUserName = "Deejay Wagz"; // TODO: Get from session/auth
     LeaderboardEntry userPosition = dataService.getUserPosition(currentUserId, phase);
 
     // Check if user is in current page
@@ -68,14 +69,21 @@ public class PublicController {
 
   @GetMapping("/leaderboard/user/{userId}/details")
   public String leaderboardUserDetails(@PathVariable String userId, Model model) {
-    LeaderboardEntry entry = dataService.getLeaderboard("FS").stream()
-        .filter(e -> userId.equals(e.getUserId()))
-        .findFirst()
-        .orElse(null);
+    // Determine which round to show
+    int currentRound = dataService.getCurrentRound();
+    boolean isCurrentRoundOpen = dataService.isRoundOpen(currentRound);
+    int roundToShow = isCurrentRoundOpen ? currentRound - 1 : currentRound;
+    String roundStatus = isCurrentRoundOpen ? "Finalised" : "Locked";
 
-    model.addAttribute("user", entry);
-    model.addAttribute("userId", userId);
-    return "fragments/leaderboard-user-detail :: modal";
+    // Get user details for the appropriate round
+    // Handle phase
+    UserDetailResponse userDetails = dataService.getUserDetails(userId, roundToShow);
+
+    model.addAttribute("user", userDetails);
+    model.addAttribute("roundToShow", roundToShow);
+    model.addAttribute("roundStatus", roundStatus);
+
+    return "fragments/user-detail :: user-details(user=${user}, round=${roundToShow}, status=${roundStatus})";
   }
 
   @GetMapping("/seasons/{id}/standings")

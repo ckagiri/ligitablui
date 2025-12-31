@@ -59,34 +59,66 @@ public class InMemoryDataService {
     return prediction;
   }
 
-public List<LeaderboardEntry> getLeaderboard(String phase) {
+  public void markResultAsViewed(int round) {
+    // TODO: Update database to mark this result as viewed
+    // For now, just log it
+    System.out.println("Result for round " + round + " marked as viewed");
+  }
+
+  public boolean isRoundOpen(int round) {
+    // TODO: Check database for round status
+    // A round is "open" if matches haven't started yet
+    // A round is "locked" once first match kicks off
+
+    // For now, stub: current round (19) is open
+    return round == getCurrentRound();
+  }
+
+  public UserDetailResponse getUserDetails(String userId, int round) {
+    // TODO: Query database for user's prediction at specific round
+
+    // Stub data
+    List<PredictionRow> prediction = getMyPredictionForRound(round); // Get their prediction
+
+    return new UserDetailResponse(
+        userId,
+        "Alice Wonder",
+        1,
+        1850,
+        round == 19 ? 45 : 42, // Different score per round
+        23,
+        0,
+        prediction // Their full 20-team prediction for this round
+    );
+  }
+
+  public List<LeaderboardEntry> getLeaderboard(String phase) {
     return List.of(
         new LeaderboardEntry(1, "user1", "Alice Wonder", 1850, 45, 198, 23, 52, 0),
-        new LeaderboardEntry(2, "user2", "Bob Smith", 1850, 45, 195, 28, 52, -1),  // Same score as Alice, fewer zeroes
-        new LeaderboardEntry(3, "user3", "Carol Jones", 1845, 44, 200, 20, 52, 2),   // Best zeroes!
+        new LeaderboardEntry(2, "user2", "Bob Smith", 1850, 45, 195, 28, 52, -1), // Same score as Alice, fewer zeroes
+        new LeaderboardEntry(3, "user3", "Carol Jones", 1845, 44, 200, 20, 52, 2), // Best zeroes!
         new LeaderboardEntry(4, "user4", "Dave Brown", 1840, 50, 190, 15, 50, -1),
         new LeaderboardEntry(5, "user5", "Eve Davis", 1825, 42, 185, 31, 48, 1),
         new LeaderboardEntry(6, "user6", "Frank Miller", 1810, 38, 180, 29, 46, -2),
         new LeaderboardEntry(7, "user7", "Grace Wilson", 1805, 41, 178, 25, 45, 3),
         new LeaderboardEntry(8, "user8", "Henry Moore", 1795, 37, 175, 33, 44, 0),
         new LeaderboardEntry(9, "user9", "Ivy Taylor", 1780, 35, 172, 27, 42, -3),
-        new LeaderboardEntry(10, "user10", "Jack Anderson", 1775, 40, 170, 22, 42, 1)
-    );
-}
+        new LeaderboardEntry(10, "user10", "Jack Anderson", 1775, 40, 170, 22, 42, 1));
+  }
 
-public LeaderboardEntry getUserPosition(String userId, String phase) {
+  public LeaderboardEntry getUserPosition(String userId, String phase) {
     return new LeaderboardEntry(
-        45,              // position
-        "current-user",  // userId
-        "You",          // displayName
-        1702,           // totalScore
-        156,            // roundScore
-        175,            // totalZeroes (NEW!)
-        15,             // totalSwaps
-        168,            // totalPoints (max round score)
-        3               // movement
+        45, // position
+        "current-user", // userId
+        "Deejay Wagz", // displayName
+        1702, // totalScore
+        156, // roundScore
+        175, // totalZeroes (NEW!)
+        15, // totalSwaps
+        168, // totalPoints (max round score)
+        3 // movement
     );
-}
+  }
 
   public List<PredictionRow> getMyPrediction() {
     return new ArrayList<>(myPrediction);
@@ -295,11 +327,66 @@ public LeaderboardEntry getUserPosition(String userId, String phase) {
   }
 
   public LatestResultResponse getLatestResult() {
-    HitDistribution dist = new HitDistribution(
-        3, 5, 8, 4,
-        "Arsenal", 1,
-        "Chelsea", 8);
-    return new LatestResultResponse(10, 367, 5, 2, dist);
+    // Check if there's a new unviewed result
+    int currentRound = getCurrentRound();
+    boolean isCurrentRoundOpen = isRoundOpen(currentRound);
+
+    // If current round is open, show previous round result (if not viewed)
+    // If current round is locked, show current round result (if not viewed)
+    int resultRound = isCurrentRoundOpen ? currentRound - 1 : currentRound;
+
+    // TODO: Check database if this result has been viewed
+    boolean hasBeenViewed = false; // Stub
+
+    if (hasBeenViewed) {
+      return null; // No banner to show
+    }
+
+    // Get prediction for this round and calculate distribution
+    List<PredictionRow> prediction = getMyPredictionForRound(resultRound);
+    HitDistribution distribution = calculateHitDistribution(prediction);
+
+    // Calculate score
+    int totalHits = prediction.stream()
+        .filter(p -> p.getHit() != null)
+        .mapToInt(PredictionRow::getHit)
+        .sum();
+    int score = 200 - totalHits;
+
+    // TODO: Get real position and movement from database
+    return new LatestResultResponse(
+        resultRound,
+        score,
+        45, // position (stub)
+        3, // movement (stub)
+        distribution,
+        false // not viewed
+    );
+  }
+
+  private HitDistribution calculateHitDistribution(List<PredictionRow> prediction) {
+    int perfect = 0;
+    int closeCalls = 0;
+    int nearMisses = 0;
+    int bigMisses = 0;
+
+    for (PredictionRow pred : prediction) {
+      if (pred.getHit() == null)
+        continue;
+
+      int hit = pred.getHit();
+      if (hit == 0) {
+        perfect++;
+      } else if (hit >= 1 && hit <= 2) {
+        closeCalls++;
+      } else if (hit >= 3 && hit <= 5) {
+        nearMisses++;
+      } else {
+        bigMisses++;
+      }
+    }
+
+    return new HitDistribution(perfect, closeCalls, nearMisses, bigMisses);
   }
 
   public List<StandingsRow> getStandings() {

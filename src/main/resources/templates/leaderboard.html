@@ -4,15 +4,6 @@
       layout:decorate="~{layout/base}">
 <body>
 <div layout:fragment="content">
-    <!-- Results Banner (if latest result available) -->
-    <div id="results-banner"
-         hx-get="/predictions/me/latest-result"
-         hx-trigger="load"
-         hx-swap="innerHTML"
-         class="mb-6">
-        <!-- Banner content loaded via HTMX -->
-    </div>
-
     <div class="bg-white rounded-lg shadow-sm">
         <!-- Header -->
         <div class="px-6 py-4 border-b border-gray-200">
