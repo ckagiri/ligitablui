@@ -68,6 +68,10 @@
         <!-- Action Button -->
         <div class="flex justify-center">
             <a th:href="@{/predictions/me(round=${result.round})}"
+               th:attr="hx-get=@{/predictions/me(round=${result.round})}"
+               hx-target="#prediction-page"
+               hx-swap="outerHTML swap:300ms"
+               hx-push-url="true"
                data-dismiss-results-banner="true"
                class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition">
                 View Detailed Results →

@@ -26,6 +26,16 @@ public class InMemoryDataService {
     this.myPrediction = initializeMyPrediction();
   }
 
+  // ADD a reset method
+  public void resetDemoState() {
+    this.lastSwapTime = null;
+    this.initialPredictionMade = false;
+    this.swapCount = 0;
+    // Reset prediction to original order
+    this.myPrediction.clear();
+    this.myPrediction.addAll(initializeMyPrediction());
+  }
+
   private List<Team> initializeTeams() {
     return List.of(
         new Team("MCI", "Manchester City", "/images/crests/mci.png"),
