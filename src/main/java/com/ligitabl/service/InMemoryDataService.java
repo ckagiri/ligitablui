@@ -272,7 +272,7 @@ public class InMemoryDataService {
           formatter.format(lastSwapTime),
           "Now",
           0.0,
-          "🎁 Bonus: You get one free change after your initial prediction!");
+          "Bonus: Make your first swap now—no 24-hour wait!");
     }
 
     // After first swap - 24 hour cooldown applies

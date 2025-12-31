@@ -117,17 +117,16 @@
                 <div th:if="${isCurrentRound}" class="px-6 pt-4">
                     <!-- Initial Prediction Mode -->
                     <div x-show="canSwap && isInitialPrediction"
-                         class="contextual-banner bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                        class="contextual-banner bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                         <p class="text-sm text-blue-800">
-                            <strong>Make your initial prediction!</strong> Click teams to swap their positions. You can make unlimited changes before submitting.
+                          <strong>Make your initial prediction!</strong> Click teams to swap their positions. Unlimited changes until you submit.
                         </p>
                     </div>
-
                     <!-- First Swap Bonus -->
-                    <div th:if="${swapStatus != null && swapStatus.canSwap && swapStatus.message.startsWith('🎁')}"
+                    <div th:if="${swapStatus != null && swapStatus.canSwap && swapStatus.message.startsWith('Bonus')}"
                          class="contextual-banner bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
                         <p class="text-sm text-green-800">
-                            <strong th:text="${swapStatus.message}">🎁 Bonus: You get one free change after your initial prediction!</strong>
+                            <strong th:text="${swapStatus.message}">Bonus: Make your first swap now—no 24-hour wait!</strong>
                         </p>
                     </div>
 
