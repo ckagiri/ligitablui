@@ -26,7 +26,7 @@
                         (↑ <span th:text="${result.movement}">3</span> positions)
                     </span>
                     <span th:if="${result.movement < 0}" class="text-red-600 font-semibold">
-                        (↓ <span th:text="${Math.abs(result.movement)}">2</span> positions)
+                        (↓ <span th:text="${T(java.lang.Math).abs(result.movement)}">2</span> positions)
                     </span>
                 </span>
             </p>
@@ -38,13 +38,13 @@
             <div class="flex items-center text-sm text-gray-700">
                 <span class="mr-3">
                     <span class="text-lg">🎯</span>
-                    <span class="font-semibold ml-1" th:text="${result.distribution.perfect}">5</span>
+                    <span class="font-semibold ml-1" th:text="${result.hitDistribution.perfect}">5</span>
                     <span class="ml-1">perfect</span>
                 </span>
                 <span class="text-gray-400 mx-2">•</span>
                 <span>
-                    <span class="text-lg">✨</span>
-                    <span class="font-semibold ml-1" th:text="${result.distribution.closeCalls}">8</span>
+                    <span class="text-lg">🤏</span>
+                    <span class="font-semibold ml-1" th:text="${result.hitDistribution.closeCalls}">8</span>
                     <span class="ml-1">close calls (±1-2)</span>
                 </span>
             </div>
@@ -53,13 +53,13 @@
             <div class="flex items-center text-sm text-gray-700">
                 <span class="mr-3">
                     <span class="text-lg">🤷</span>
-                    <span class="font-semibold ml-1" th:text="${result.distribution.nearMisses}">5</span>
+                    <span class="font-semibold ml-1" th:text="${result.hitDistribution.nearMisses}">5</span>
                     <span class="ml-1">near misses (±3-5)</span>
                 </span>
                 <span class="text-gray-400 mx-2">•</span>
                 <span>
                     <span class="text-lg">😅</span>
-                    <span class="font-semibold ml-1" th:text="${result.distribution.bigMisses}">2</span>
+                    <span class="font-semibold ml-1" th:text="${result.hitDistribution.bigMisses}">2</span>
                     <span class="ml-1">big misses (±6+)</span>
                 </span>
             </div>
