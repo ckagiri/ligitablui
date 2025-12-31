@@ -522,6 +522,33 @@
             if (!target.querySelector || !target.querySelector('[x-data]')) return;
             window.Alpine.initTree(target);
         });
+
+        (function () {
+            window.Ligitabl = window.Ligitabl || {};
+            window.Ligitabl.resultsBannerDismissed = false;
+
+            document.body.addEventListener('htmx:beforeRequest', (event) => {
+                const elt = event.detail?.elt;
+                if (elt && elt.id === 'results-banner' && window.Ligitabl.resultsBannerDismissed) {
+                    event.preventDefault();
+                }
+            });
+
+            function dismissResultsBanner() {
+                const host = document.getElementById('results-banner');
+                if (!host) return;
+
+                window.Ligitabl.resultsBannerDismissed = true;
+
+                host.remove();
+            }
+
+            document.addEventListener('click', (event) => {
+                const trigger = event.target?.closest?.('[data-dismiss-results-banner="true"]');
+                if (!trigger) return;
+                dismissResultsBanner();
+            });
+        })();
     </script>
 </body>
 </html>

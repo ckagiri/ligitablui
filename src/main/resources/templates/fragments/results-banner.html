@@ -1,6 +1,7 @@
 <!-- Results Banner Fragment -->
 <div th:fragment="results-banner(result)" th:if="${result != null}">
-    <div class="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-lg p-5 shadow-sm mb-6">
+    <div class="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-lg p-5 shadow-sm mb-6"
+         th:attr="data-result-round=${result.round}">
         <!-- Header -->
         <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
@@ -9,9 +10,8 @@
                     Gameweek <span th:text="${result.round}">18</span> Results Available!
                 </h3>
             </div>
-            <button th:attr="hx-put=@{/predictions/me/results/{round}/mark-viewed(round=${result.round})}"
-                    hx-target="#results-banner"
-                    hx-swap="outerHTML"
+            <button type="button"
+                    data-dismiss-results-banner="true"
                     class="text-gray-400 hover:text-gray-600 transition text-xl font-bold">
                 ✕
             </button>
@@ -68,6 +68,7 @@
         <!-- Action Button -->
         <div class="flex justify-center">
             <a th:href="@{/predictions/me(round=${result.round})}"
+               data-dismiss-results-banner="true"
                class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition">
                 View Detailed Results →
             </a>

@@ -137,13 +137,6 @@ public class PlayerController {
     return "fragments/results-banner :: results-banner(result=null)";
   }
 
-  @PutMapping("/predictions/me/results/{round}/mark-viewed")
-  @ResponseBody
-  public String markResultViewed(@PathVariable Integer round) {
-    // Stub: no persistence; returning empty allows HTMX to remove the banner.
-    return "";
-  }
-
   @GetMapping("/users/{userId}/predictions")
   public String userPredictions(
       @PathVariable String userId,

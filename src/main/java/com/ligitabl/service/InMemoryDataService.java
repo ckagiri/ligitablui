@@ -278,7 +278,7 @@ public class InMemoryDataService {
     // After first swap - 24 hour cooldown applies
     long hoursSinceLastSwap = ChronoUnit.HOURS.between(lastSwapTime, now);
     long minutesSinceLastSwap = ChronoUnit.MINUTES.between(lastSwapTime, now);
-    boolean canSwap = hoursSinceLastSwap >= 24;
+    boolean canSwap = hoursSinceLastSwap >= 0.033;
 
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
         .withZone(ZoneId.systemDefault());
