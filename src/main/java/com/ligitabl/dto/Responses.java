@@ -10,11 +10,13 @@ public class Responses {
   @AllArgsConstructor
   public static class LeaderboardEntry {
     private Integer position;
+    private String userId;
     private String displayName;
     private Integer totalScore;
-    private Integer totalZeroes;
+    private Integer roundScore;
+    private Integer totalZeroes; // NEW: Number of perfect predictions (0 hits)
     private Integer totalSwaps;
-    private Integer maxScore;
+    private Integer totalPoints; // For tiebreaker (max score in any round)
     private Integer movement;
   }
 

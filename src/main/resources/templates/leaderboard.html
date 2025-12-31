@@ -5,7 +5,7 @@
 <body>
 <div layout:fragment="content">
     <!-- Results Banner (if latest result available) -->
-    <div id="results-banner" 
+    <div id="results-banner"
          hx-get="/predictions/me/latest-result"
          hx-trigger="load"
          hx-swap="innerHTML"
@@ -18,119 +18,181 @@
         <div class="px-6 py-4 border-b border-gray-200">
             <div class="flex justify-between items-center">
                 <h1 class="text-2xl font-bold text-gray-900">Leaderboard</h1>
-                
-                <!-- Phase Selector -->
-                <div class="flex items-center space-x-2">
-                    <label for="phase-select" class="text-sm font-medium text-gray-700">
-                        Phase:
-                    </label>
-                    <select id="phase-select" 
-                            name="phase"
-                            class="form-select rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            hx-get="/leaderboard"
+                <div>
+                    <select th:attr="hx-get=@{/leaderboard}"
                             hx-trigger="change"
                             hx-target="#leaderboard-content"
-                            hx-swap="innerHTML swap:300ms"
-                            hx-indicator=".htmx-indicator">
-                        <option value="FS" th:selected="${currentPhase == 'FS'}">Full Season</option>
-                        <option value="H1" th:selected="${currentPhase == 'H1'}">First Half</option>
-                        <option value="H2" th:selected="${currentPhase == 'H2'}">Second Half</option>
-                        <option value="Q1" th:selected="${currentPhase == 'Q1'}">Quarter 1</option>
-                        <option value="Q2" th:selected="${currentPhase == 'Q2'}">Quarter 2</option>
-                        <option value="Q3" th:selected="${currentPhase == 'Q3'}">Quarter 3</option>
-                        <option value="Q4" th:selected="${currentPhase == 'Q4'}">Quarter 4</option>
+                            hx-swap="outerHTML swap:300ms"
+                            hx-include="this"
+                            name="phase"
+                            class="form-select block w-48 px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <option th:each="p : ${phases}"
+                                th:value="${p}"
+                                th:selected="${p == currentPhase}"
+                                th:text="${p == 'FS' ? 'Full Season' : p}">
+                            Full Season
+                        </option>
                     </select>
-                    <span class="htmx-indicator">
-                        <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </span>
                 </div>
             </div>
         </div>
 
         <!-- Leaderboard Table -->
-        <div id="leaderboard-content" class="px-6 py-4">
+        <div id="leaderboard-content" th:fragment="leaderboardContent" class="px-6 py-4">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Rank
-                            </th>
-                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Player
-                            </th>
-                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Score
-                            </th>
-                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Zeroes
-                            </th>
-                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Swaps
-                            </th>
-                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Best
-                            </th>
-                            <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Movement
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        <tr th:each="entry : ${leaderboard}" 
-                            class="hover:bg-gray-50 transition cursor-pointer">
-                            <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
-                                th:text="${entry.position}">
-                                1
-                            </td>
-                            <td class="px-3 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900" th:text="${entry.displayName}">Alice Wonder</div>
-                            </td>
-                            <td class="px-3 py-4 whitespace-nowrap text-right text-sm font-semibold text-indigo-600"
-                                th:text="${#numbers.formatInteger(entry.totalScore, 1, 'COMMA')}">
-                                1,850
-                            </td>
-                            <td class="px-3 py-4 whitespace-nowrap text-right text-sm text-gray-500"
-                                th:text="${entry.totalZeroes}">
-                                45
-                            </td>
-                            <td class="px-3 py-4 whitespace-nowrap text-right text-sm text-gray-500"
-                                th:text="${entry.totalSwaps}">
-                                23
-                            </td>
-                            <td class="px-3 py-4 whitespace-nowrap text-right text-sm text-gray-500"
-                                th:text="${entry.maxScore}">
-                                198
-                            </td>
-                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm">
-                                <span th:if="${entry.movement > 0}"
-                                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    ↑ <span th:text="${entry.movement}">2</span>
-                                </span>
-                                <span th:if="${entry.movement < 0}"
-                                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                    ↓ <span th:text="${-entry.movement}">1</span>
-                                </span>
-                                <span th:if="${entry.movement == 0}"
-                                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                    —
-                                </span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+              <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                      <tr>
+                          <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                              Pos
+                          </th>
+                          <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Player
+                          </th>
+                          <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                              Score
+                          </th>
+                          <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                              Round
+                          </th>
+                          <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24"
+                              title="Total number of perfect predictions (0 hit) across all rounds">
+                              Zeroes
+                              <span class="text-gray-400 ml-1 cursor-help">ⓘ</span>
+                          </th>
+                          <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                              Swaps
+                          </th>
+                          <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                              Movement
+                          </th>
+                      </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+                      <tr th:each="entry : ${leaderboard}"
+                          th:classappend="${userPosition != null && entry.position == userPosition.position ? 'bg-indigo-50 border-l-4 border-indigo-500' : ''}"
+                          class="hover:bg-gray-50 transition">
+                          <!-- Position -->
+                          <td class="px-3 py-4 whitespace-nowrap text-sm font-bold"
+                              th:classappend="${userPosition != null && entry.position == userPosition.position ? 'text-indigo-900' : 'text-gray-900'}">
+                              <span th:if="${userPosition != null && entry.position == userPosition.position}"
+                                    class="text-indigo-600 mr-1.5 text-base">🔹</span>
+                              <span th:text="${entry.position}">1</span>
+                          </td>
+
+                          <!-- Player (clickable) -->
+                          <td class="px-3 py-4 whitespace-nowrap">
+                              <button th:attr="hx-get=@{/leaderboard/user/{id}/details(id=${entry.userId})}"
+                                      hx-target="#user-detail-modal"
+                                      hx-swap="innerHTML"
+                                      class="text-sm font-medium hover:text-indigo-600 hover:underline transition cursor-pointer text-left"
+                                      th:classappend="${userPosition != null && entry.position == userPosition.position ? 'text-indigo-900' : 'text-gray-900'}"
+                                      th:text="${entry.displayName}">Alice Wonder</button>
+                          </td>
+
+                          <!-- Score -->
+                          <td class="px-3 py-4 whitespace-nowrap text-right text-sm font-bold text-indigo-600"
+                              th:text="${entry.totalScore}">1850</td>
+
+                          <!-- Round Score -->
+                          <td class="px-3 py-4 whitespace-nowrap text-right text-sm text-gray-600"
+                              th:text="${entry.roundScore}">45</td>
+
+                          <!-- Zeroes (NEW!) -->
+                          <td class="px-3 py-4 whitespace-nowrap text-right text-sm font-semibold text-green-600"
+                              th:text="${entry.totalZeroes}">198</td>
+
+                          <!-- Swaps -->
+                          <td class="px-3 py-4 whitespace-nowrap text-right text-sm text-gray-500"
+                              th:text="${entry.totalSwaps}">23</td>
+
+                          <!-- Movement -->
+                          <td class="px-3 py-4 whitespace-nowrap text-center text-sm">
+                              <span th:if="${entry.movement > 0}" class="text-green-600 font-semibold">
+                                  ↑ <span th:text="${entry.movement}">1</span>
+                              </span>
+                              <span th:if="${entry.movement < 0}" class="text-red-600 font-semibold">
+                                    ↓ <span th:text="${T(java.lang.Math).abs(entry.movement)}">2</span>
+                              </span>
+                              <span th:if="${entry.movement == 0}" class="text-gray-400">--</span>
+                          </td>
+                      </tr>
+                  </tbody>
+
+                  <!-- Sticky User Position Row -->
+                  <tfoot th:if="${userPosition != null && !userInCurrentPage}"
+                        class="border-t-2 border-indigo-300">
+                      <tr class="bg-gradient-to-r from-indigo-50 to-blue-50">
+                          <td colspan="7" class="px-3 py-4">
+                              <div class="flex items-center space-x-6">
+                                  <!-- Position -->
+                                  <div class="flex items-center">
+                                      <span class="text-indigo-600 mr-1.5 text-base">🔹</span>
+                                      <span class="text-sm font-semibold text-indigo-900">
+                                          #<span th:text="${userPosition.position}">45</span>
+                                      </span>
+                                  </div>
+
+                                  <!-- Name -->
+                                  <div class="text-sm font-bold text-indigo-900">
+                                      You (<span th:text="${currentUserName}">Adam</span>)
+                                  </div>
+
+                                  <!-- Score -->
+                                  <div class="flex items-center">
+                                      <span class="text-xs text-gray-600 mr-1">Score:</span>
+                                      <span class="text-sm font-bold text-indigo-700" th:text="${userPosition.totalScore}">1702</span>
+                                  </div>
+
+                                  <!-- Round Score -->
+                                  <div class="flex items-center">
+                                      <span class="text-xs text-gray-600 mr-1">Round:</span>
+                                      <span class="text-sm text-gray-700" th:text="${userPosition.roundScore}">156</span>
+                                  </div>
+
+                                  <!-- Zeroes (NEW!) -->
+                                  <div class="flex items-center">
+                                      <span class="text-xs text-gray-600 mr-1">Zeroes:</span>
+                                      <span class="text-sm font-semibold text-green-600" th:text="${userPosition.totalZeroes}">175</span>
+                                  </div>
+
+                                  <!-- Swaps -->
+                                  <div class="flex items-center">
+                                      <span class="text-xs text-gray-600 mr-1">Swaps:</span>
+                                      <span class="text-sm font-semibold text-indigo-600" th:text="${userPosition.totalSwaps}">15</span>
+                                  </div>
+
+                                  <!-- Movement -->
+                                  <div class="flex items-center">
+                                      <span th:if="${userPosition.movement > 0}" class="text-green-600 font-bold text-sm">
+                                          ↑ <span th:text="${userPosition.movement}">3</span>
+                                      </span>
+                                      <span th:if="${userPosition.movement < 0}" class="text-red-600 font-bold text-sm">
+                                            ↓ <span th:text="${T(java.lang.Math).abs(userPosition.movement)}">2</span>
+                                      </span>
+                                      <span th:if="${userPosition.movement == 0}" class="text-indigo-500 text-sm">--</span>
+                                  </div>
+                              </div>
+                          </td>
+                      </tr>
+                  </tfoot>
+              </table>
             </div>
-            
-            <!-- Empty state -->
-            <div class="text-center py-12 hidden" id="empty-state">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">No entries yet</h3>
-                <p class="mt-1 text-sm text-gray-500">Be the first to join the contest!</p>
+
+            <!-- Pagination (below table) -->
+            <div class="mt-4 flex items-center justify-between">
+                <div class="text-sm text-gray-500">
+                    Showing 1-10 of 100 players
+                </div>
+                <div class="flex space-x-2">
+                    <button class="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                            disabled>
+                        Previous
+                    </button>
+                    <button class="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">
+                        Next
+                    </button>
+                </div>
             </div>
         </div>
     </div>

@@ -59,19 +59,34 @@ public class InMemoryDataService {
     return prediction;
   }
 
-  public List<LeaderboardEntry> getLeaderboard(String phase) {
+public List<LeaderboardEntry> getLeaderboard(String phase) {
     return List.of(
-        new LeaderboardEntry(1, "Alice Wonder", 1850, 45, 23, 198, 0),
-        new LeaderboardEntry(2, "Bob Smith", 1850, 45, 28, 195, -1),
-        new LeaderboardEntry(3, "Carol Jones", 1850, 44, 20, 200, 2),
-        new LeaderboardEntry(4, "Dave Brown", 1840, 50, 15, 195, -1),
-        new LeaderboardEntry(5, "Eve Davis", 1825, 42, 31, 192, 1),
-        new LeaderboardEntry(6, "Frank Miller", 1810, 38, 29, 190, -2),
-        new LeaderboardEntry(7, "Grace Wilson", 1805, 41, 25, 188, 3),
-        new LeaderboardEntry(8, "Henry Moore", 1795, 37, 33, 186, 0),
-        new LeaderboardEntry(9, "Ivy Taylor", 1780, 35, 27, 184, -3),
-        new LeaderboardEntry(10, "Jack Anderson", 1775, 40, 22, 182, 1));
-  }
+        new LeaderboardEntry(1, "user1", "Alice Wonder", 1850, 45, 198, 23, 52, 0),
+        new LeaderboardEntry(2, "user2", "Bob Smith", 1850, 45, 195, 28, 52, -1),  // Same score as Alice, fewer zeroes
+        new LeaderboardEntry(3, "user3", "Carol Jones", 1845, 44, 200, 20, 52, 2),   // Best zeroes!
+        new LeaderboardEntry(4, "user4", "Dave Brown", 1840, 50, 190, 15, 50, -1),
+        new LeaderboardEntry(5, "user5", "Eve Davis", 1825, 42, 185, 31, 48, 1),
+        new LeaderboardEntry(6, "user6", "Frank Miller", 1810, 38, 180, 29, 46, -2),
+        new LeaderboardEntry(7, "user7", "Grace Wilson", 1805, 41, 178, 25, 45, 3),
+        new LeaderboardEntry(8, "user8", "Henry Moore", 1795, 37, 175, 33, 44, 0),
+        new LeaderboardEntry(9, "user9", "Ivy Taylor", 1780, 35, 172, 27, 42, -3),
+        new LeaderboardEntry(10, "user10", "Jack Anderson", 1775, 40, 170, 22, 42, 1)
+    );
+}
+
+public LeaderboardEntry getUserPosition(String userId, String phase) {
+    return new LeaderboardEntry(
+        45,              // position
+        "current-user",  // userId
+        "You",          // displayName
+        1702,           // totalScore
+        156,            // roundScore
+        175,            // totalZeroes (NEW!)
+        15,             // totalSwaps
+        168,            // totalPoints (max round score)
+        3               // movement
+    );
+}
 
   public List<PredictionRow> getMyPrediction() {
     return new ArrayList<>(myPrediction);

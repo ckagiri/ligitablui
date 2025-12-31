@@ -10,17 +10,17 @@
             <div class="flex justify-between items-center">
                 <h1 class="text-2xl font-bold text-gray-900">League Standings</h1>
                 <div>
-                    <select th:attr="hx-get=@{/seasons/{id}/standings(id=${seasonId})}" 
-                            hx-trigger="change" 
-                            hx-target="#standings-content" 
+                    <select th:attr="hx-get=@{/seasons/{id}/standings(id=${seasonId})}"
+                            hx-trigger="change"
+                            hx-target="#standings-content"
                             hx-swap="innerHTML swap:300ms"
                             name="round"
                             class="form-select block w-48 px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        <option th:value="19" th:selected="${currentRound == 19}">Current (Round 19)</option>
-                        <option th:value="18" th:selected="${currentRound == 18}">Round 18</option>
-                        <option th:value="17" th:selected="${currentRound == 17}">Round 17</option>
-                        <option th:value="16" th:selected="${currentRound == 16}">Round 16</option>
-                        <option th:value="15" th:selected="${currentRound == 15}">Round 15</option>
+                        <option th:value="19" th:selected="${currentRound == 19}">Current (GW 19)</option>
+                        <option th:value="18" th:selected="${currentRound == 18}">GW 18</option>
+                        <option th:value="17" th:selected="${currentRound == 17}">GW 17</option>
+                        <option th:value="16" th:selected="${currentRound == 16}">GW 16</option>
+                        <option th:value="15" th:selected="${currentRound == 15}">GW 15</option>
                     </select>
                 </div>
             </div>
@@ -65,7 +65,7 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        <tr th:each="standing : ${standings}" 
+                        <tr th:each="standing : ${standings}"
                             class="hover:bg-gray-50 transition">
                             <td class="px-3 py-4 whitespace-nowrap text-sm font-bold text-gray-900"
                                 th:text="${standing.position}">
