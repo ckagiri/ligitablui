@@ -45,9 +45,9 @@ public class InMemoryDataService {
         new Team("BRE", "Brentford", "/images/crests/bre.png"),
         new Team("EVE", "Everton", "/images/crests/eve.png"),
         new Team("NFO", "Nottingham Forest", "/images/crests/nfo.png"),
-        new Team("LUT", "Luton Town", "/images/crests/lut.png"),
+        new Team("LEE", "Leeds United", "/images/crests/lee.png"),
         new Team("BUR", "Burnley", "/images/crests/bur.png"),
-        new Team("SHU", "Sheffield United", "/images/crests/shu.png"));
+        new Team("SUN", "Sunderland", "/images/crests/sun.png"));
   }
 
   private List<PredictionRow> initializeMyPrediction() {

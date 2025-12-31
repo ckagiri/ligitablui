@@ -7,33 +7,33 @@
 
     <!-- App CSS (served from src/main/resources/static/css/main.css) -->
     <link rel="stylesheet" th:href="@{/css/main.css}">
-    
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    
+
     <!-- Alpine.js for small interactions -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
+
     <style>
         /* HTMX Swap Animations */
         .htmx-swapping {
             opacity: 0;
             transition: opacity 300ms ease-out;
         }
-        
+
         .htmx-settling {
             opacity: 1;
             transition: opacity 300ms ease-in;
         }
-        
+
         /* Prediction Table Row Base Transition */
         .prediction-row {
             transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         /* Micro-Animation 1: Team Swap - Smooth position change */
         @keyframes swap-slide {
             0% {
@@ -47,12 +47,12 @@
                 transform: translateY(0);
             }
         }
-        
+
         .prediction-row.swapping {
             animation: swap-slide 400ms cubic-bezier(0.4, 0, 0.2, 1);
             background-color: #fef3c7;
         }
-        
+
         /* Micro-Animation 2: Selection Pulse - Gentle feedback on click */
         @keyframes selection-pulse {
             0% {
@@ -65,11 +65,11 @@
                 transform: scale(1);
             }
         }
-        
+
         .prediction-row.selected-pulse {
             animation: selection-pulse 300ms ease-out;
         }
-        
+
         /* Micro-Animation 3: Position Change Indicator Pop-in */
         @keyframes position-pop-in {
             0% {
@@ -84,21 +84,21 @@
                 opacity: 1;
             }
         }
-        
+
         .position-change {
             display: inline-block;
             animation: position-pop-in 250ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        
+
         /* Micro-Animation 4: Button State Transitions */
         button, .btn {
             transition: all 200ms ease-in-out;
         }
-        
+
         button:active:not(:disabled) {
             transform: scale(0.98);
         }
-        
+
         /* Button counter fade-in */
         @keyframes counter-fade-in {
             from {
@@ -110,16 +110,16 @@
                 transform: translateX(0);
             }
         }
-        
+
         .button-counter {
             animation: counter-fade-in 200ms ease-out;
         }
-        
+
         /* Micro-Animation 5: Banner Transitions */
         .contextual-banner {
             animation: banner-fade-in 200ms ease-out;
         }
-        
+
         @keyframes banner-fade-in {
             from {
                 opacity: 0;
@@ -130,26 +130,26 @@
                 transform: translateY(0);
             }
         }
-        
+
         /* Hover Effects */
         .prediction-row:hover:not(.no-hover) {
             transform: translateX(2px);
         }
-        
+
         /* Loading States */
         .htmx-request .htmx-indicator {
             display: inline;
         }
-        
+
         .htmx-indicator {
             display: none;
         }
-        
+
         /* Smooth height transitions */
         [hx-boost] {
             transition: all 200ms ease;
         }
-        
+
         /* Form elements */
         .form-select {
             appearance: none;
@@ -159,29 +159,29 @@
             background-size: 1.5em 1.5em;
             padding-right: 3.5rem;
         }
-        
+
         /* Success state animation */
         @keyframes success-bounce {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
         }
-        
+
         .success-state {
             animation: success-bounce 400ms ease-out;
         }
-        
+
         /* LIVE match pulsing indicator */
         @keyframes pulse-live {
-            0%, 100% { 
+            0%, 100% {
                 opacity: 1;
                 transform: scale(1);
             }
-            50% { 
+            50% {
                 opacity: 0.6;
                 transform: scale(0.95);
             }
         }
-        
+
         .live-indicator {
             display: inline-block;
             animation: pulse-live 1.5s ease-in-out infinite;
@@ -198,31 +198,31 @@
                         ⚽ Ligitabl
                     </a>
                     <div class="hidden md:flex ml-10 space-x-4">
-                        <a th:href="@{/leaderboard}" 
+                        <a th:href="@{/leaderboard}"
                            class="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition">
                             Leaderboard
                         </a>
-                        <a th:href="@{/seasons/current/standings}" 
+                        <a th:href="@{/seasons/current/standings}"
                            class="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition">
                             Standings
                         </a>
-                        <a th:href="@{/seasons/current/matches}" 
+                        <a th:href="@{/seasons/current/matches}"
                            class="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition">
                             Matches
                         </a>
                     </div>
                 </div>
-                
+
                 <div class="flex items-center space-x-4">
-                    <a th:href="@{/predictions/me}" 
+                    <a th:href="@{/predictions/me}"
                        class="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition">
                         My Predictions
                     </a>
-                    <a th:href="@{/auth/login}" 
+                    <a th:href="@{/auth/login}"
                        class="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition">
                         Login
                     </a>
-                    <a th:href="@{/auth/register}" 
+                    <a th:href="@{/auth/register}"
                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition">
                         Sign Up
                     </a>
@@ -234,7 +234,7 @@
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Flash Messages -->
-        <div th:if="${message}" 
+        <div th:if="${message}"
              th:classappend="${messageType == 'success' ? 'bg-green-50 border-green-400 text-green-800' : (messageType == 'error' ? 'bg-red-50 border-red-400 text-red-800' : 'bg-blue-50 border-blue-400 text-blue-800')}"
              class="border-l-4 p-4 mb-6 rounded">
             <div class="flex">
@@ -254,7 +254,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div layout:fragment="content">
             <!-- Page content goes here -->
         </div>
@@ -268,14 +268,14 @@
             </div>
         </div>
     </footer>
-    
+
     <!-- Additional Scripts -->
     <script>
         // HTMX Configuration
         document.body.addEventListener('htmx:configRequest', (event) => {
             event.detail.headers['X-CSRF-TOKEN'] = document.querySelector('meta[name="_csrf"]')?.content;
         });
-        
+
         // Smooth scroll on HTMX navigation
         document.body.addEventListener('htmx:afterSwap', (event) => {
             if (event.detail.target.id === 'main-content') {
@@ -306,7 +306,6 @@
                 teams: [],
                 originalTeams: [],
                 selectedTeam: null,
-                swapOperations: 0,
                 canSwap,
                 isInitialPrediction,
 
@@ -319,7 +318,6 @@
                         originalPosition: p.position,
                     }));
                     this.originalTeams = JSON.parse(JSON.stringify(this.teams));
-                    this.swapOperations = 0;
                 },
 
                 isSelected(teamCode) {
@@ -336,7 +334,82 @@
                 },
 
                 getSwapCount() {
-                    return this.swapOperations;
+                    const changedTeams = this.teams.filter((t) => t.position !== t.originalPosition).length;
+                    const rawSwaps = changedTeams / 2;
+
+                    // Always use strict rounding for consistency
+                    return Math.ceil(rawSwaps);
+                },
+
+                getChangedTeams() {
+                    return this.teams
+                        .filter((t) => t.position !== t.originalPosition)
+                        .map((t) => {
+                            const change = t.originalPosition - t.position;
+                            return {
+                                name: t.name,
+                                code: t.code,
+                                from: t.originalPosition,
+                                to: t.position,
+                                direction: change > 0 ? 'up' : 'down',
+                                amount: Math.abs(change)
+                            };
+                        })
+                        .sort((a, b) => a.from - b.from); // Sort by original position
+                },
+
+                getChangeSummary() {
+                    const changed = this.getChangedTeams();
+                    if (changed.length === 0) return null;
+
+                    // Group consecutive changes into swap pairs
+                    const swapPairs = this.inferSwapPairs(changed);
+
+                    return {
+                        teamCount: changed.length,
+                        swapCount: this.getSwapCount(),
+                        pairs: swapPairs
+                    };
+                },
+
+                inferSwapPairs(changedTeams) {
+                    // Simple heuristic: pair teams that swapped positions
+                    const pairs = [];
+                    const processed = new Set();
+
+                    for (const team of changedTeams) {
+                        if (processed.has(team.code)) continue;
+
+                        // Find if another team took this team's original position
+                        const partner = changedTeams.find(t =>
+                            !processed.has(t.code) &&
+                            t.to === team.from &&
+                            t.from === team.to
+                        );
+
+                        if (partner) {
+                            pairs.push({
+                                team1: team.name,
+                                team2: partner.name,
+                                pos1: team.from,
+                                pos2: partner.from
+                            });
+                            processed.add(team.code);
+                            processed.add(partner.code);
+                        } else {
+                            // Team moved but no direct swap partner found
+                            pairs.push({
+                                team1: team.name,
+                                team2: null,
+                                pos1: team.from,
+                                pos2: team.to,
+                                isComplex: true
+                            });
+                            processed.add(team.code);
+                        }
+                    }
+
+                    return pairs;
                 },
 
                 getPositionChange(teamCode) {
@@ -397,20 +470,21 @@
                     this.teams[index1] = this.teams[index2];
                     this.teams[index2] = temp;
                     this.teams.forEach((team, idx) => (team.position = idx + 1));
-                    this.swapOperations++;
                     this.selectedTeam = null;
                 },
 
                 reset() {
                     this.teams = JSON.parse(JSON.stringify(this.originalTeams));
                     this.selectedTeam = null;
-                    this.swapOperations = 0;
                 },
 
                 canUpdate() {
                     const swapCount = this.getSwapCount();
                     if (swapCount === 0) return false;
+
+                    // After initial prediction, only allow up to 1 swap
                     if (!this.isInitialPrediction && swapCount > 1) return false;
+
                     return this.canSwap;
                 },
 
