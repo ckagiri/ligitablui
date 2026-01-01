@@ -57,7 +57,7 @@
 ```
 ligitabl-stub-fixed/
 ├── src/main/java/com/ligitabl/config/
-│   └── WebConfig.java                    # NEW - Static resource config
+│   └── WebConfig.java
 ├── src/main/resources/templates/
 │   ├── index.html                        # FIXED - Redesigned home page
 │   └── layout/base.html                  # FIXED - CSS + Nav

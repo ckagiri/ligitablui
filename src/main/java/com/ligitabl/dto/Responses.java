@@ -26,7 +26,7 @@ public class Responses {
     private String displayName;
     private Integer totalScore;
     private Integer roundScore;
-    private Integer totalZeroes; // NEW: Number of perfect predictions (0 hits)
+    private Integer totalZeroes; // Number of perfect predictions (0 hits)
     private Integer totalSwaps;
     private Integer totalPoints; // For tiebreaker (max score in any round)
     private Integer movement;
@@ -39,8 +39,8 @@ public class Responses {
     private String teamCode;
     private String teamName;
     private String crestUrl;
-    private Integer hit; // NEW: points lost (0 = perfect)
-    private Integer actualPosition; // NEW: actual standings position
+    private Integer hit; // points lost (0 = perfect)
+    private Integer actualPosition; // actual standings position
 
     // Backward compatibility constructor
     public PredictionRow(Integer position, String teamCode, String teamName, String crestUrl) {

@@ -124,7 +124,7 @@ public class InMemoryDataService {
         "Deejay Wagz", // displayName
         1702, // totalScore
         156, // roundScore
-        175, // totalZeroes (NEW!)
+        175, // totalZeroes
         15, // totalSwaps
         168, // totalPoints (max round score)
         3 // movement
