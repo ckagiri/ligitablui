@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   demo:
     image: ${DOCKER_USERNAME}/ligitabl-demo:${IMAGE_TAG:-latest}
@@ -23,7 +21,7 @@ services:
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
 
     networks:
-      - nginx-proxy
+      - nginx
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080"]
@@ -39,5 +37,5 @@ services:
         max-file: "2"
 
 networks:
-  nginx-proxy:
+  nginx:
     external: true
