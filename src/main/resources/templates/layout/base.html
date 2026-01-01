@@ -291,12 +291,20 @@
             const predictionsRaw = el?.dataset?.predictions ?? '[]';
             const canSwapRaw = el?.dataset?.canSwap ?? 'false';
             const isInitialRaw = el?.dataset?.isInitialPrediction ?? 'false';
+            const currentStandingsRaw = el?.dataset?.currentStandings ?? '{}';
 
             let predictions;
             try {
                 predictions = JSON.parse(predictionsRaw);
             } catch {
                 predictions = [];
+            }
+
+            let currentStandings;
+            try {
+                currentStandings = JSON.parse(currentStandingsRaw);
+            } catch {
+                currentStandings = {};
             }
 
             const canSwap = canSwapRaw === 'true' || canSwapRaw === 'True';
@@ -308,6 +316,8 @@
                 selectedTeam: null,
                 canSwap,
                 isInitialPrediction,
+                showStandings: false,
+                currentStandings,
 
                 init() {
                     this.teams = (Array.isArray(predictions) ? predictions : []).map((p) => ({
@@ -490,6 +500,26 @@
 
                 exceedsLimit() {
                     return !this.isInitialPrediction && this.getSwapCount() > 1;
+                },
+
+                getActualPosition(teamCode) {
+                    return this.currentStandings[teamCode] || '?';
+                },
+
+                getDelta(teamCode) {
+                    const team = this.teams.find(t => t.code === teamCode);
+                    const actual = this.getActualPosition(teamCode);
+                    if (!team || actual === '?') return '-';
+                    return Math.abs(team.position - actual);
+                },
+
+                getDeltaDirection(teamCode) {
+                    const team = this.teams.find(t => t.code === teamCode);
+                    const actual = this.getActualPosition(teamCode);
+                    if (!team || actual === '?') return null;
+
+                    // If your position > actual position, team needs to move up
+                    return team.position > actual ? 'up' : 'down';
                 },
 
                 submitChanges() {

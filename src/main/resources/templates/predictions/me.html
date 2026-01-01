@@ -109,8 +109,10 @@
         <div id="prediction-content" th:fragment="predictionContent">
             <div class="bg-white rounded-lg shadow-sm mb-6"
                  x-data="Ligitabl.predictionPage($el)"
-                 th:attr="data-predictions=${predictionsJson}, data-can-swap=${canSwap}, data-is-initial-prediction=${isInitialPrediction}">
-
+                 th:attr="data-predictions=${predictionsJson},
+                  data-can-swap=${canSwap},
+                                    data-is-initial-prediction=${isInitialPrediction},
+                  data-current-standings=${currentStandingsJson}">
                 <!-- Historical Round Info Banner -->
                 <div th:if="${!isCurrentRound}" class="px-6 pt-4">
                     <div class="contextual-banner bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -171,7 +173,7 @@
                     <div x-show="exceedsLimit()"
                          class="contextual-banner bg-red-50 border border-red-300 rounded-lg p-3 mb-4">
                         <p class="text-sm text-red-800">
-                            <strong>Only 1 swap allowed per period!</strong>
+                            <strong>Only 1 swap allowed per 24h period!</strong>
                             You've made <span x-text="getSwapCount()"></span> swaps.
                             <a @click="reset()" class="underline cursor-pointer">Reset</a> to undo extras.
                         </p>
@@ -186,7 +188,14 @@
                         </p>
                     </div>
                 </div>
-
+                <div th:if="${isCurrentRound}" class="px-6 pt-4 pb-2">
+                    <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900 transition">
+                        <input type="checkbox"
+                              x-model="showStandings"
+                              class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <span>Compare with current standings</span>
+                    </label>
+                </div>
                 <!-- Teams Table -->
                 <div class="px-6 py-4">
                     <div class="overflow-x-auto">
@@ -205,6 +214,12 @@
                                     </th>
                                     <th th:if="${!isCurrentRound}" scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider w-20">
                                         Pos
+                                    </th>
+                                    <th x-show="showStandings" scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                                        Actual
+                                    </th>
+                                    <th x-show="showStandings" scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                                        Delta
                                     </th>
                                 </tr>
                             </thead>
@@ -246,6 +261,31 @@
                                                 <div class="text-xs text-gray-400">
                                                     <span x-show="isSelected(team.code)" class="text-blue-600 font-medium">●</span>
                                                 </div>
+                                            </div>
+                                        </td>
+                                        <!-- Actual Position -->
+                                        <td x-show="showStandings" class="px-3 py-4 whitespace-nowrap text-right text-sm text-gray-400"
+                                            x-text="getActualPosition(team.code)">2</td>
+                                        <!-- Delta with Arrow -->
+                                        <td x-show="showStandings" class="px-3 py-4 whitespace-nowrap text-right">
+                                            <div class="flex items-center justify-end gap-1 text-sm font-semibold">
+                                                <!-- Arrow icon -->
+                                                <svg x-show="getDelta(team.code) !== 0 && getDelta(team.code) !== '-'"
+                                                    class="h-4 w-4"
+                                                    :class="getDeltaDirection(team.code) === 'down' ? 'text-red-600' : 'text-green-600'"
+                                                    fill="currentColor" viewBox="0 0 20 20">
+                                                    <path x-show="getDeltaDirection(team.code) === 'up'"
+                                                          fill-rule="evenodd"
+                                                          d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
+                                                          clip-rule="evenodd"/>
+                                                    <path x-show="getDeltaDirection(team.code) === 'down'"
+                                                          fill-rule="evenodd"
+                                                          d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                                          clip-rule="evenodd"/>
+                                                </svg>
+                                                <!-- Delta number -->
+                                                <span :class="getDelta(team.code) === 0 ? 'text-green-600' : (getDeltaDirection(team.code) === 'down' ? 'text-red-600' : 'text-green-600')"
+                                                      x-text="getDelta(team.code)">1</span>
                                             </div>
                                         </td>
                                     </tr>

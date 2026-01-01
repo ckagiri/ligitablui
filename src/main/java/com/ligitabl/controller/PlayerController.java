@@ -27,10 +27,10 @@ public class PlayerController {
 
   @GetMapping("/predictions/demo-reset")
   public String resetDemo(RedirectAttributes redirectAttributes) {
-      dataService.resetDemoState();
-      redirectAttributes.addFlashAttribute("message", "Demo reset! Start from initial prediction again.");
-      redirectAttributes.addFlashAttribute("messageType", "success");
-      return "redirect:/predictions/me";
+    dataService.resetDemoState();
+    redirectAttributes.addFlashAttribute("message", "Demo reset! Start from initial prediction again.");
+    redirectAttributes.addFlashAttribute("messageType", "success");
+    return "redirect:/predictions/me";
   }
 
   @GetMapping("/predictions/me")
@@ -66,6 +66,13 @@ public class PlayerController {
       } catch (JsonProcessingException e) {
         throw new IllegalStateException("Failed to serialize predictions", e);
       }
+
+      try {
+        Map<String, Integer> standingsMap = dataService.getCurrentStandingsMap();
+        model.addAttribute("currentStandingsJson", objectMapper.writeValueAsString(standingsMap));
+      } catch (JsonProcessingException e) {
+        model.addAttribute("currentStandingsJson", "{}");
+      }
     } else {
       // Historical round - read-only
       var predictions = dataService.getMyPredictionForRound(round);
@@ -88,6 +95,9 @@ public class PlayerController {
       } catch (JsonProcessingException e) {
         throw new IllegalStateException("Failed to serialize predictions", e);
       }
+
+      // Keep template data-* attributes consistent across rounds.
+      model.addAttribute("currentStandingsJson", "{}");
     }
 
     if (hxRequest != null && !hxRequest.isBlank()) {

@@ -9,6 +9,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -255,6 +256,17 @@ public class InMemoryDataService {
     // Update last swap time
     lastSwapTime = Instant.now();
     initialPredictionMade = true;
+  }
+
+  public Map<String, Integer> getCurrentStandingsMap() {
+    List<StandingsRow> standings = getStandings();
+    Map<String, Integer> standingsMap = new HashMap<>();
+
+    for (StandingsRow row : standings) {
+      standingsMap.put(row.getTeamCode(), row.getPosition());
+    }
+
+    return standingsMap;
   }
 
   public SwapStatusResponse getSwapStatus() {
