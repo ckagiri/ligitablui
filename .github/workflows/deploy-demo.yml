@@ -1,0 +1,111 @@
+name: Deploy Ligitabl Demo
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: ligitabl-demo
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create production env file
+        run: |
+          cat <<EOF > .env.prod
+          # Docker
+          DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+          IMAGE_TAG=${{ github.sha }}
+
+          # Domain (both root and www)
+          VIRTUAL_HOST=ligipredictor.com,www.ligipredictor.com
+          LETSENCRYPT_HOST=ligipredictor.com,www.ligipredictor.com
+          LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}
+          EOF
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USERNAME }}
+          port: 22
+          key: ${{ secrets.DEPLOY_KEY }}
+          source: "docker-compose.prod.yml,.env.prod"
+          target: "~/.deploy/ligitabl-demo/"
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.2
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USERNAME }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          port: 22
+          envs: DOCKER_USERNAME,DOCKER_PASSWORD
+          script: |
+            set -e
+
+            echo "🔐 Logging into Docker Hub..."
+            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+
+            cd ~/.deploy/ligitabl-demo
+
+            echo "🔄 Pulling latest image..."
+            docker compose -f docker-compose.prod.yml --env-file .env.prod pull
+
+            echo "🛑 Stopping old container..."
+            docker compose -f docker-compose.prod.yml --env-file .env.prod down
+
+            echo "🧼 Cleaning up..."
+            docker image prune -f
+
+            echo "🚀 Starting demo..."
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+
+            echo "⏳ Waiting for health check..."
+            sleep 10
+
+            echo "✅ Checking deployment..."
+            docker compose -f docker-compose.prod.yml --env-file .env.prod ps
+
+            echo "📊 Deployment complete!"
+            echo "Visit: https://ligipredictor.com"
