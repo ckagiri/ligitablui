@@ -259,10 +259,23 @@
     .prediction-row {
         font-size: 0.875rem;
     }
-    
+
     .table-responsive {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+    }
+
+    .prediction-row.swapping {
+        animation: none;
+        background-color: #fef3c7;
+    }
+
+    .position-change {
+        animation: none;
+    }
+
+    .contextual-banner {
+        animation: none;
     }
 }
 
@@ -272,6 +285,26 @@
         --gray-50: #1f2937;
         --gray-100: #111827;
         --gray-900: #f9fafb;
+    }
+}
+
+/* Reduce motion for mobile and users who prefer it */
+@media (prefers-reduced-motion: reduce), (max-width: 768px) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .prediction-row {
+        transition: background-color 150ms ease !important;
+    }
+
+    .htmx-swapping,
+    .htmx-settling {
+        transition: opacity 150ms ease !important;
     }
 }
 
@@ -286,7 +319,7 @@
     .no-print {
         display: none !important;
     }
-    
+
     .prediction-row {
         break-inside: avoid;
     }
