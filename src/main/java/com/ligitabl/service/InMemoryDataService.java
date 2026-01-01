@@ -418,9 +418,9 @@ public class InMemoryDataService {
         new StandingsRow(15, "BRE", "Brentford", "/images/crests/bre.png", 19, 5, 5, 9, 20, 24, 33, -9),
         new StandingsRow(16, "EVE", "Everton", "/images/crests/eve.png", 19, 4, 6, 9, 18, 20, 31, -11),
         new StandingsRow(17, "NFO", "Nottingham Forest", "/images/crests/nfo.png", 19, 4, 5, 10, 17, 21, 35, -14),
-        new StandingsRow(18, "LUT", "Luton Town", "/images/crests/lut.png", 19, 3, 4, 12, 13, 19, 39, -20),
+        new StandingsRow(18, "LEE", "Leeds United", "/images/crests/lee.png", 19, 3, 4, 12, 13, 19, 39, -20),
         new StandingsRow(19, "BUR", "Burnley", "/images/crests/bur.png", 19, 2, 4, 13, 10, 17, 42, -25),
-        new StandingsRow(20, "SHU", "Sheffield United", "/images/crests/shu.png", 19, 1, 3, 15, 6, 14, 48, -34));
+        new StandingsRow(20, "SUN", "Sunderland", "/images/crests/sun.png", 19, 1, 3, 15, 6, 14, 48, -34));
   }
 
   public List<Match> getMatches() {
@@ -469,8 +469,8 @@ public class InMemoryDataService {
         Map.entry("BRE", 15),
         Map.entry("EVE", 16),
         Map.entry("NFO", 17),
-        Map.entry("LUT", 18),
+        Map.entry("LEE", 18),
         Map.entry("BUR", 19),
-        Map.entry("SHU", 20));
+        Map.entry("SUN", 20));
   }
 }

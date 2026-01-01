@@ -274,19 +274,25 @@
                         </table>
                     </div>
                   <div th:if="${!isCurrentRound && roundScore != null}" class="mt-4 text-center pb-4">
-                    <div class="inline-flex flex-col items-center px-6 py-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <div class="flex items-center text-sm text-gray-600 mb-1">
-                          <span class="font-mono">200</span>
-                          <span class="mx-2">−</span>
-                          <span class="font-mono" th:text="${totalHits}">156</span>
-                          <span class="mx-2">=</span>
-                          <span class="font-mono font-bold text-gray-900" th:text="${roundScore}">44</span>
-                          <span class="ml-1">points</span>
+                      <div class="inline-flex flex-col items-center px-6 py-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <div class="flex items-center text-sm text-gray-600 mb-1">
+                            <span class="font-mono">200</span>
+                            <span class="mx-2">−</span>
+                            <span class="font-mono" th:text="${totalHits}">156</span>
+                            <span class="mx-2">=</span>
+                            <span class="font-mono font-bold text-gray-900" th:text="${roundScore}">44</span>
+                            <span class="ml-1">points</span>
+                          </div>
+
+                          <!-- Move it here, as a sibling -->
+                          <div class="text-xs text-green-600 font-semibold">
+                              🎯 <span th:text="${predictions.?[hit != null and hit == 0].size()}">5</span> perfect predictions!
+                          </div>
+
+                          <div class="text-xs text-gray-500">
+                              (Max: 200, Lost: <span th:text="${totalHits}">156</span>)
+                          </div>
                       </div>
-                      <div class="text-xs text-gray-500">
-                          (Max: 200, Lost: <span th:text="${totalHits}">156</span>)
-                      </div>
-                    </div>
                   </div>
                 </div>
 
