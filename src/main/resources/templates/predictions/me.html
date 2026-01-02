@@ -34,12 +34,12 @@
               <!-- Status Indicator -->
               <div class="mb-4 sm:mb-6">
                   <div class="inline-flex items-center gap-2 text-sm">
-                      <span th:if="${isCurrentRound && swapStatus != null && swapStatus.canSwap}"
+                      <span th:if="${isCurrentRound && canSwap}"
                             class="flex items-center gap-1.5 text-green-600 font-medium">
                           <span class="w-2 h-2 bg-green-600 rounded-full"></span>
                           Ready to modify
                       </span>
-                      <span th:if="${isCurrentRound && swapStatus != null && !swapStatus.canSwap}"
+                      <span th:if="${isCurrentRound && !canSwap && swapStatus != null}"
                             class="flex items-center gap-1.5 text-yellow-600 font-medium">
                           <span class="w-2 h-2 bg-yellow-600 rounded-full"></span>
                           <!-- Extract "Next change in X" and remove the period -->

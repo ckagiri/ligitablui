@@ -272,6 +272,10 @@ public class InMemoryDataService {
   public SwapStatusResponse getSwapStatus() {
     Instant now = Instant.now();
 
+    // Demo cooldown: keep short so it’s easy to verify in UI.
+    // NOTE: Replace with 24 * 60 for a real 24h cooldown.
+    final long cooldownMinutes = 2;
+
     // Initial prediction mode - unlimited changes
     if (!initialPredictionMade) {
       return new SwapStatusResponse(
@@ -298,9 +302,8 @@ public class InMemoryDataService {
     }
 
     // After first swap - 24 hour cooldown applies
-    long hoursSinceLastSwap = ChronoUnit.HOURS.between(lastSwapTime, now);
     long minutesSinceLastSwap = ChronoUnit.MINUTES.between(lastSwapTime, now);
-    boolean canSwap = hoursSinceLastSwap >= 0.033;
+    boolean canSwap = minutesSinceLastSwap >= cooldownMinutes;
 
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
         .withZone(ZoneId.systemDefault());
@@ -315,8 +318,8 @@ public class InMemoryDataService {
           "You can make changes now!");
     } else {
       // Format time naturally
-      long hoursRemaining = 24 - hoursSinceLastSwap;
-      long minutesRemaining = (24 * 60) - minutesSinceLastSwap;
+      long minutesRemaining = Math.max(0, cooldownMinutes - minutesSinceLastSwap);
+      long hoursRemaining = minutesRemaining / 60;
 
       String timeDisplay;
       if (hoursRemaining >= 2) {
@@ -337,7 +340,7 @@ public class InMemoryDataService {
         }
       }
 
-      Instant nextSwapTime = lastSwapTime.plus(24, ChronoUnit.HOURS);
+      Instant nextSwapTime = lastSwapTime.plus(cooldownMinutes, ChronoUnit.MINUTES);
       // Different message for first cooldown vs subsequent cooldowns
         String message;
         if (swapCount == 1) {
@@ -352,7 +355,7 @@ public class InMemoryDataService {
           false,
           formatter.format(lastSwapTime),
           formatter.format(nextSwapTime),
-          (double) hoursRemaining,
+          minutesRemaining / 60.0,
           message);
     }
   }
