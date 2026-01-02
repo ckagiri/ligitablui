@@ -58,8 +58,8 @@
                 transform: translateY(0);
             }
             50% {
-                transform: translateY(-3px);
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                transform: translateY(-2px);
+                box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             }
             100% {
                 transform: translateY(0);
@@ -67,7 +67,7 @@
         }
 
         .prediction-row.swapping {
-            animation: swap-slide 400ms cubic-bezier(0.4, 0, 0.2, 1);
+            /* animation: swap-slide 250ms cubic-bezier(0.4, 0.0, 0.2, 1); */
             background-color: #fef3c7;
         }
 
@@ -558,16 +558,23 @@
                         return;
                     }
 
+                    // Store the team codes before clearing selection
+                    const team1Code = this.selectedTeam;
+                    const team2Code = teamCode;
+
+                    // Clear selection IMMEDIATELY so blue highlight is removed
+                    this.selectedTeam = null;
+
                     this.$nextTick(() => {
-                        const row1 = document.querySelector(`[data-team-code='${this.selectedTeam}']`);
-                        const row2 = document.querySelector(`[data-team-code='${teamCode}']`);
+                        const row1 = document.querySelector(`[data-team-code='${team1Code}']`);
+                        const row2 = document.querySelector(`[data-team-code='${team2Code}']`);
                         if (row1) {
                             row1.classList.add('swapping');
-                            setTimeout(() => row1.classList.remove('swapping'), 400);
+                            setTimeout(() => row1.classList.remove('swapping'), 600);
                         }
                         if (row2) {
                             row2.classList.add('swapping');
-                            setTimeout(() => row2.classList.remove('swapping'), 400);
+                            setTimeout(() => row2.classList.remove('swapping'), 600);
                         }
                     });
 
@@ -575,7 +582,6 @@
                     this.teams[index1] = this.teams[index2];
                     this.teams[index2] = temp;
                     this.teams.forEach((team, idx) => (team.position = idx + 1));
-                    this.selectedTeam = null;
                 },
 
                 reset() {
