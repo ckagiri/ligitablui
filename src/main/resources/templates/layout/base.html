@@ -39,6 +39,19 @@
             transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
         /* Micro-Animation 1: Team Swap - Smooth position change */
         @keyframes swap-slide {
             0% {
@@ -389,7 +402,7 @@
                 isInitialPrediction,
                 showStandings: false,
                 currentStandings,
-
+                isSaving: false,
                 init() {
                     this.teams = (Array.isArray(predictions) ? predictions : []).map((p) => ({
                         position: p.position,
@@ -594,6 +607,7 @@
                 },
 
                 submitChanges() {
+                    this.isSaving = true;
                     const teamCodes = this.teams.map((t) => t.code);
 
                     fetch('/predictions/swap-multiple', {
@@ -606,7 +620,13 @@
                         .then((response) => response.json())
                         .then((data) => {
                             if (data.success) {
-                                window.location.reload();
+                              // Scroll to top before reload so flash message is visible
+                              window.scrollTo({ top: 0, behavior: 'instant' });
+
+                              // Small delay to ensure scroll completes
+                              setTimeout(() => {
+                                  window.location.reload();
+                              }, 100);
                             }
                         })
                         .catch((error) => {

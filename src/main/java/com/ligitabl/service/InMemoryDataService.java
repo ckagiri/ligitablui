@@ -294,7 +294,7 @@ public class InMemoryDataService {
           formatter.format(lastSwapTime),
           "Now",
           0.0,
-          "Bonus: Make your first swap now—no 24-hour wait!");
+          "You can make your first swap without waiting 24 hours");
     }
 
     // After first swap - 24 hour cooldown applies
@@ -338,13 +338,22 @@ public class InMemoryDataService {
       }
 
       Instant nextSwapTime = lastSwapTime.plus(24, ChronoUnit.HOURS);
+      // Different message for first cooldown vs subsequent cooldowns
+        String message;
+        if (swapCount == 1) {
+            // First cooldown (after using the "free" first swap)
+            message = "Cooldown active. You've submitted changes for this period. Next change in " + timeDisplay; // CHANGED
+        } else {
+            // Subsequent cooldowns
+            message = "Cooldown active. You've already submitted changes for this period. Next change in " + timeDisplay;
+        }
       return new SwapStatusResponse(
           "OPEN",
           false,
           formatter.format(lastSwapTime),
           formatter.format(nextSwapTime),
           (double) hoursRemaining,
-          "Next change in " + timeDisplay);
+          message);
     }
   }
 
