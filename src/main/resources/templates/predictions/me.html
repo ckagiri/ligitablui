@@ -44,7 +44,7 @@
                           <span class="w-2 h-2 bg-yellow-600 rounded-full"></span>
                           <!-- Extract "Next change in X" and remove the period -->
                           <span th:text="${#strings.replace(#strings.substringAfter(swapStatus.message, 'Next change in '), '.', '')}">23h</span>
-                          <span> remaining</span>
+                          <span> remaining (countdown is actually from 24h)</span>
                       </span>
                   </div>
 
