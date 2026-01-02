@@ -42,17 +42,19 @@
                       <span th:if="${isCurrentRound && swapStatus != null && !swapStatus.canSwap}"
                             class="flex items-center gap-1.5 text-yellow-600 font-medium">
                           <span class="w-2 h-2 bg-yellow-600 rounded-full"></span>
-                          <span th:text="${swapStatus.message}">Next change in 23h</span>
+                          <!-- Extract "Next change in X" and remove the period -->
+                          <span th:text="${#strings.replace(#strings.substringAfter(swapStatus.message, 'Next change in '), '.', '')}">23h</span>
+                          <span> remaining</span>
                       </span>
                   </div>
 
-            <!-- Reset Demo (mobile only) -->
-            <a th:href="@{/predictions/demo-reset}"
-               data-reset-demo="true"
-               class="sm:hidden inline-block mt-2 text-xs text-gray-400 hover:text-gray-600 underline">
-                Reset Demo
-            </a>
-        </div>
+                  <!-- Reset Demo (mobile only) -->
+                  <a th:href="@{/predictions/demo-reset}"
+                    data-reset-demo="true"
+                    class="sm:hidden inline-block mt-2 text-xs text-gray-400 hover:text-gray-600 underline">
+                      Reset Demo
+                  </a>
+              </div>
 
               <!-- Round Navigation -->
               <div class="flex flex-col space-y-3">
@@ -207,7 +209,7 @@
                   <div x-show="!canSwap"
                       class="contextual-banner bg-yellow-50 border border-yellow-300 rounded-lg p-3 mb-4">
                       <p class="text-sm text-yellow-800">
-                          <span th:if="${swapStatus != null}" 
+                          <span th:if="${swapStatus != null}"
                                 th:utext="${#strings.replace(swapStatus.message, 'Cooldown active.', '<strong>Cooldown active.</strong>')}"
                                 >
                               <strong>Cooldown active.</strong> Next modification available in 23h.

@@ -207,6 +207,17 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen" x-data="{ mobileMenuOpen: false }">
+    <!-- Loading Toast (Fixed Position) -->
+    <div id="saving-toast"
+         class="hidden fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-lg">
+        <div class="flex items-center gap-3">
+            <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="font-medium">Saving changes...</span>
+        </div>
+    </div>
     <!-- Navigation -->
     <nav class="bg-white shadow-sm sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -305,7 +316,7 @@
         <!-- Flash Messages -->
         <div th:if="${message}"
             x-data="{ show: true }"
-            x-init="setTimeout(() => show = false, 7000)"
+            x-init="setTimeout(() => show = false, 6000)"
             x-show="show"
             x-transition
             th:classappend="${messageType == 'success' ? 'bg-green-50 border-green-400 text-green-800' : (messageType == 'error' ? 'bg-red-50 border-red-400 text-red-800' : 'bg-blue-50 border-blue-400 text-blue-800')}"
@@ -610,6 +621,12 @@
                     this.isSaving = true;
                     const teamCodes = this.teams.map((t) => t.code);
 
+                    // Show loading toast
+                    const toast = document.getElementById('saving-toast');
+                    if (toast) {
+                        toast.classList.remove('hidden');
+                    }
+
                     fetch('/predictions/swap-multiple', {
                         method: 'POST',
                         headers: {
@@ -620,18 +637,24 @@
                         .then((response) => response.json())
                         .then((data) => {
                             if (data.success) {
-                              // Scroll to top before reload so flash message is visible
-                              window.scrollTo({ top: 0, behavior: 'instant' });
+                              // Delay scroll slightly so user sees button state change
+                              setTimeout(() => {
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }, 300);
 
-                              // Small delay to ensure scroll completes
+                              // Then reload
                               setTimeout(() => {
                                   window.location.reload();
-                              }, 100);
+                              }, 800);
                             }
                         })
                         .catch((error) => {
-                            console.error('Error:', error);
-                            alert('Failed to update prediction');
+                          console.error('Error:', error);
+                          this.isSaving = false;
+                          if (toast) {
+                              toast.classList.add('hidden');
+                          }
+                          alert('Failed to update prediction');
                         });
                 },
             };

@@ -342,10 +342,10 @@ public class InMemoryDataService {
         String message;
         if (swapCount == 1) {
             // First cooldown (after using the "free" first swap)
-            message = "Cooldown active. You've submitted changes for this period. Next change in " + timeDisplay; // CHANGED
+            message = "Cooldown active. You've submitted changes for this period. Next change in " + timeDisplay + ".";
         } else {
             // Subsequent cooldowns
-            message = "Cooldown active. You've already submitted changes for this period. Next change in " + timeDisplay;
+            message = "Cooldown active. You've already submitted changes for this period. Next change in " + timeDisplay + ".";
         }
       return new SwapStatusResponse(
           "OPEN",
