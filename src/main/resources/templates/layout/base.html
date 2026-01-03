@@ -23,8 +23,12 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
   <style>
-      /* Ultra-minimal - Only essential transitions */
+      /* Hide Alpine elements until Alpine is ready */
+      [x-cloak] {
+          display: none !important;
+      }
 
+      /* Ultra-minimal - Only essential transitions */
       /* Page transitions - instant */
       .htmx-swapping {
           opacity: 0;
