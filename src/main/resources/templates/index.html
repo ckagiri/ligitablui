@@ -5,22 +5,36 @@
 <body>
 <div layout:fragment="content">
     <!-- Hero Section -->
-    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-2xl p-12 mb-12 text-white">
+    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-2xl p-8 sm:p-12 mb-12 text-white">
         <div class="max-w-4xl mx-auto text-center">
-            <h1 class="text-5xl font-extrabold mb-6 animate-pulse">
+            <h1 class="text-4xl sm:text-5xl font-extrabold mb-6 animate-pulse">
                 ⚽ LigiPredictor | Rank 'Em Right
             </h1>
-            <p class="text-xl mb-8 text-indigo-100">
+            <p class="text-lg sm:text-xl mb-8 text-indigo-100">
               Predict the Premier League table. Swap smart. Rank 'Em Right.
             </p>
-            <div class="flex justify-center space-x-4">
+
+            <!-- Main CTA Buttons - Stack on mobile, side-by-side on desktop -->
+            <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mb-6">
                 <a th:href="@{/auth/register}"
-                   class="bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition transform hover:scale-105 shadow-lg">
+                  class="w-full sm:w-auto bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition transform hover:scale-105 shadow-lg text-center">
                     Sign Up (Demo)
                 </a>
                 <a th:href="@{/leaderboard}"
-                   class="bg-indigo-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-indigo-400 transition transform hover:scale-105 shadow-lg">
+                  class="w-full sm:w-auto bg-indigo-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-indigo-400 transition transform hover:scale-105 shadow-lg text-center">
                     View Leaderboard
+                </a>
+            </div>
+
+            <!-- Already Signed In Link -->
+            <div class="mt-4">
+                <p class="text-indigo-100 text-sm mb-2">Already have an account?</p>
+                <a th:href="@{/predictions/me}"
+                  class="inline-flex items-center gap-2 text-white hover:text-indigo-100 font-medium text-base underline decoration-2 underline-offset-4 transition group">
+                    Go to My Predictions
+                    <svg class="h-5 w-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                    </svg>
                 </a>
             </div>
         </div>
