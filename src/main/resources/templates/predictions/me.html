@@ -201,7 +201,7 @@
 
                         <!-- Priority 3: Changes Made (within limit, no selection) -->
                         <p x-show="!exceedsLimit() && getDirtyCount() > 0 && selectedTeam === null" class="text-sm text-amber-800">
-                            You've made <strong><span x-text="getSwapCount()"></span> swap(s)</strong>.
+                            You've made <strong><span x-text="getSwapCount()"></span> <span x-text="getSwapCount() === 1 ? 'swap' : 'swaps'"></span></strong>.
                             Review your changes below, then update to save or
                             <a @click="reset()" class="underline cursor-pointer font-semibold">reset</a> to undo.
                         </p>
