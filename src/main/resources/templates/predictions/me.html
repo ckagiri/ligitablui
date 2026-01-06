@@ -194,9 +194,9 @@
 
                         <!-- Priority 2: Too Many Swaps (only when no selection) -->
                         <p x-show="exceedsLimit() && selectedTeam === null" class="text-sm text-red-800">
-                            <strong>Too many swaps!</strong>
-                            You've made <span x-text="getSwapCount()"></span> swaps but only 1 is allowed per 24h period.
-                            <a @click="reset()" class="underline cursor-pointer font-semibold">Reset</a> to undo extras.
+                            <strong>Swap limit exceeded!</strong>
+                            You've made <span x-text="getSwapCount()"></span> swaps but only 1 is allowed per 24h.
+                            <a @click="reset()" class="underline cursor-pointer font-semibold">Reset</a> to continue.
                         </p>
 
                         <!-- Priority 3: Changes Made (within limit, no selection) -->
