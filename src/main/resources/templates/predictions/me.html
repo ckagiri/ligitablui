@@ -192,12 +192,12 @@
                             Click another team to swap, or click again to deselect.
                         </p>
 
-                        <!-- Priority 2: Too Many Swaps (only when no selection) -->
-                        <p x-show="exceedsLimit() && selectedTeam === null" class="text-sm text-red-800">
-                            <strong>Swap limit exceeded!</strong>
-                            You've made <span x-text="getSwapCount()"></span> swaps but only 1 is allowed per 24h.
-                            <a @click="reset()" class="underline cursor-pointer font-semibold">Reset</a> to continue.
-                        </p>
+                          <!-- Priority 2: Too Many Swaps (only when no selection) -->
+                          <p x-show="exceedsLimit() && selectedTeam === null" class="text-sm text-red-800">
+                              <strong>Swap limit exceeded!</strong>
+                              You've made <span x-text="getSwapCount()"></span> swaps but only 1 is allowed per 24h.
+                              <a @click="reset()" class="underline cursor-pointer font-semibold">Reset</a>
+                          </p>
 
                         <!-- Priority 3: Changes Made (within limit, no selection) -->
                         <p x-show="!exceedsLimit() && getDirtyCount() > 0 && selectedTeam === null" class="text-sm text-amber-800">
