@@ -2,6 +2,10 @@ package com.ligitabl.service;
 
 import com.ligitabl.domain.Team;
 import com.ligitabl.dto.Responses.*;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -359,6 +363,44 @@ public class InMemoryDataService {
           message);
     }
   }
+
+  public Map<String, List<Fixture>> getFixturesForRound(int round) {
+    // TODO: In real app, fetch from database
+    // Stub data for demo - GW 19
+    Map<String, List<Fixture>> fixtures = new HashMap<>();
+
+      // Example fixtures (some teams have double gameweeks for demo)
+      fixtures.put("MCI", List.of(new Fixture("ARS", true)));
+      fixtures.put("ARS", List.of(new Fixture("MCI", false)));
+      fixtures.put("LIV", List.of(new Fixture("TOT", true), new Fixture("CHE", false))); // Double gameweek
+      fixtures.put("TOT", List.of(new Fixture("LIV", false)));
+      fixtures.put("CHE", List.of(new Fixture("NEW", true), new Fixture("LIV", true))); // Double gameweek
+      fixtures.put("NEW", List.of(new Fixture("CHE", false)));
+      fixtures.put("AVL", List.of(new Fixture("MUN", true)));
+      fixtures.put("MUN", List.of(new Fixture("AVL", false)));
+      fixtures.put("WHU", List.of(new Fixture("BHA", true)));
+      fixtures.put("BHA", List.of(new Fixture("WHU", false)));
+      fixtures.put("WOL", List.of(new Fixture("FUL", false)));
+      fixtures.put("FUL", List.of(new Fixture("WOL", true)));
+      fixtures.put("BOU", List.of(new Fixture("CRY", true)));
+      fixtures.put("CRY", List.of(new Fixture("BOU", false)));
+      fixtures.put("BRE", List.of(new Fixture("EVE", false)));
+      fixtures.put("EVE", List.of(new Fixture("BRE", true)));
+      fixtures.put("NFO", List.of(new Fixture("LEE", true)));
+      fixtures.put("LEE", List.of(new Fixture("NFO", false)));
+      fixtures.put("BUR", List.of(new Fixture("SUN", false)));
+      fixtures.put("SUN", List.of(new Fixture("BUR", true)));
+
+    return fixtures;
+}
+
+// Add inner class for Fixture
+@Data
+@AllArgsConstructor
+public static class Fixture {
+    private String opponent;
+    private boolean isHome;
+}
 
   public LatestResultResponse getLatestResult() {
     // Check if there's a new unviewed result

@@ -290,6 +290,7 @@
             const canSwapRaw = el?.dataset?.canSwap ?? 'false';
             const isInitialRaw = el?.dataset?.isInitialPrediction ?? 'false';
             const currentStandingsRaw = el?.dataset?.currentStandings ?? '{}';
+            const fixturesRaw = el?.dataset?.fixtures ?? '{}';
 
             let predictions;
             try {
@@ -305,6 +306,13 @@
                 currentStandings = {};
             }
 
+            let fixtures;
+            try {
+                fixtures = JSON.parse(fixturesRaw);
+            } catch {
+                fixtures = {};
+            }
+
             const canSwap = canSwapRaw === 'true' || canSwapRaw === 'True';
             const isInitialPrediction = isInitialRaw === 'true' || isInitialRaw === 'True';
 
@@ -315,7 +323,9 @@
                 canSwap,
                 isInitialPrediction,
                 showStandings: false,
+                showFixtures: false,
                 currentStandings,
+                fixtures,
                 isSaving: false,
                 init() {
                     this.teams = (Array.isArray(predictions) ? predictions : []).map((p) => ({
@@ -326,6 +336,15 @@
                         originalPosition: p.position,
                     }));
                     this.originalTeams = JSON.parse(JSON.stringify(this.teams));
+                },
+
+                getFixtures(teamCode) {
+                    return this.fixtures[teamCode] || [];
+                },
+
+                hasFixtures(teamCode) {
+                    const teamFixtures = this.getFixtures(teamCode);
+                    return teamFixtures.length > 0;
                 },
 
                 isSelected(teamCode) {

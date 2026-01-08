@@ -136,9 +136,10 @@
             <div class="bg-white rounded-lg shadow-sm mb-6"
                  x-data="Ligitabl.predictionPage($el)"
                  th:attr="data-predictions=${predictionsJson},
-                  data-can-swap=${canSwap},
-                                    data-is-initial-prediction=${isInitialPrediction},
-                  data-current-standings=${currentStandingsJson}">
+                    data-can-swap=${canSwap},
+                    data-is-initial-prediction=${isInitialPrediction},
+                    data-current-standings=${currentStandingsJson},
+                    data-fixtures=${fixturesJson}">
                 <!-- Historical Round Info Banner -->
                 <div th:if="${!isCurrentRound}" class="px-6 pt-4">
                     <div class="contextual-banner bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -225,13 +226,32 @@
                     </div>
                 </div>
 
-                <div th:if="${isCurrentRound}" class="px-6 pt-4 pb-2">
+                <!-- <div th:if="${isCurrentRound}" class="px-6 pt-4 pb-2">
                     <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900 transition">
                         <input type="checkbox"
                               x-model="showStandings"
                               class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                         <span class="hidden sm:inline">Compare with current standings</span>
                         <span class="sm:hidden">Show actual positions</span>
+                    </label>
+                </div> -->
+                <div th:if="${isCurrentRound && (roundState == 'open' || roundState == 'locked')}" class="px-6 pt-4 pb-2 space-y-2">
+                    <!-- Compare with standings -->
+                    <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900 transition">
+                        <input type="checkbox"
+                              x-model="showStandings"
+                              class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <span class="hidden sm:inline">Compare with current standings</span>
+                        <span class="sm:hidden">Show actual positions</span>
+                    </label>
+
+                    <!-- Show fixtures -->
+                    <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900 transition">
+                        <input type="checkbox"
+                              x-model="showFixtures"
+                              class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <span class="hidden sm:inline">Show fixtures</span>
+                        <span class="sm:hidden">Show fixtures</span>
                     </label>
                 </div>
                 <!-- Teams Table -->
@@ -307,6 +327,18 @@
             </div>
             <div>
                 <div class="text-sm font-medium text-gray-900" x-text="team.name"></div>
+
+                <!-- Fixtures below team name -->
+                <div x-show="showFixtures && hasFixtures(team.code)" class="flex items-center gap-1.5 mt-1">
+                    <template x-for="fixture in getFixtures(team.code)" :key="fixture.opponent">
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 rounded text-xs font-medium text-gray-700">
+                            <span x-show="fixture.isHome" title="Home">🏠</span>
+                            <span x-show="!fixture.isHome" title="Away">✈️</span>
+                            <span x-text="fixture.opponent"></span>
+                        </span>
+                    </template>
+                </div>
+
                 <!-- Mobile: Show actual position with delta -->
                 <div x-show="showStandings" class="sm:hidden flex items-center gap-1 text-xs mt-0.5">
                     <span class="text-gray-500">Actual:</span>

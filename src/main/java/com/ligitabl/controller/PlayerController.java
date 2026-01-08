@@ -36,75 +36,88 @@ public class PlayerController {
   @GetMapping("/predictions/me")
   public String myPredictions(
       @RequestParam(required = false, defaultValue = "19") Integer round,
+      @RequestParam(required = false, defaultValue = "open") String state,
       @RequestHeader(value = "HX-Request", required = false) String hxRequest,
       Model model) {
 
-    int currentRound = dataService.getCurrentRound();
-    boolean isCurrentRound = (round == currentRound);
+      int currentRound = dataService.getCurrentRound();
+      boolean isCurrentRound = (round == currentRound);
 
-    model.addAttribute("pageTitle", "My Predictions");
-    model.addAttribute("currentRound", currentRound);
-    model.addAttribute("viewingRound", round);
-    model.addAttribute("isCurrentRound", isCurrentRound);
+      model.addAttribute("pageTitle", "My Predictions");
+      model.addAttribute("currentRound", currentRound);
+      model.addAttribute("viewingRound", round);
+      model.addAttribute("isCurrentRound", isCurrentRound);
+      model.addAttribute("roundState", state);
 
-    if (isCurrentRound) {
-      // Current round - editable
-      var predictions = dataService.getMyPrediction();
-      var swapStatus = dataService.getSwapStatus();
-      boolean canSwap = swapStatus != null && Boolean.TRUE.equals(swapStatus.getCanSwap());
-      boolean isInitialPrediction = swapStatus != null && "Never".equals(swapStatus.getLastSwapAt());
+      boolean isOpen = "open".equals(state);
+      boolean isLocked = "locked".equals(state);
+      boolean isCompleted = "completed".equals(state);
 
-      model.addAttribute("predictions", predictions);
-      model.addAttribute("swapStatus", swapStatus);
-      model.addAttribute("canSwap", canSwap);
-      model.addAttribute("isInitialPrediction", isInitialPrediction);
-      model.addAttribute("roundScore", null);
-      model.addAttribute("totalHits", null);
+      if (isCurrentRound && (isOpen || isLocked)) {
+        var predictions = dataService.getMyPrediction();
+        var swapStatus = dataService.getSwapStatus();
+        boolean canSwap = isOpen && swapStatus != null && Boolean.TRUE.equals(swapStatus.getCanSwap());
+        boolean isInitialPrediction = swapStatus != null && "Never".equals(swapStatus.getLastSwapAt());
 
-      try {
-        model.addAttribute("predictionsJson", objectMapper.writeValueAsString(predictions));
-      } catch (JsonProcessingException e) {
-        throw new IllegalStateException("Failed to serialize predictions", e);
-      }
+        model.addAttribute("predictions", predictions);
+        model.addAttribute("swapStatus", swapStatus);
+        model.addAttribute("canSwap", canSwap);
+        model.addAttribute("isInitialPrediction", isInitialPrediction);
+        model.addAttribute("roundScore", null);
+        model.addAttribute("totalHits", null);
 
-      try {
-        Map<String, Integer> standingsMap = dataService.getCurrentStandingsMap();
-        model.addAttribute("currentStandingsJson", objectMapper.writeValueAsString(standingsMap));
-      } catch (JsonProcessingException e) {
+        // Add fixtures for open/locked rounds
+        Map<String, List<InMemoryDataService.Fixture>> fixtures = dataService.getFixturesForRound(round);
+        try {
+          model.addAttribute("fixturesJson", objectMapper.writeValueAsString(fixtures));
+        } catch (JsonProcessingException e) {
+          model.addAttribute("fixturesJson", "{}");
+        }
+
+        try {
+          model.addAttribute("predictionsJson", objectMapper.writeValueAsString(predictions));
+        } catch (JsonProcessingException e) {
+          throw new IllegalStateException("Failed to serialize predictions", e);
+        }
+
+        try {
+          Map<String, Integer> standingsMap = dataService.getCurrentStandingsMap();
+          model.addAttribute("currentStandingsJson", objectMapper.writeValueAsString(standingsMap));
+        } catch (JsonProcessingException e) {
+          model.addAttribute("currentStandingsJson", "{}");
+        }
+      } else {
+        // Historical/completed - readonly - no fixtures needed
+        var predictions = dataService.getMyPredictionForRound(round);
+        int totalHits = predictions.stream()
+            .filter(p -> p.getHit() != null)
+            .mapToInt(PredictionRow::getHit)
+            .sum();
+
+        int score = 200 - totalHits;
+        model.addAttribute("predictions", predictions);
+        model.addAttribute("roundScore", score);
+        model.addAttribute("swapStatus", null);
+        model.addAttribute("canSwap", false);
+        model.addAttribute("isInitialPrediction", false);
+        model.addAttribute("totalHits", totalHits);
+        model.addAttribute("fixturesJson", "{}");
+
+        try {
+          model.addAttribute("predictionsJson", objectMapper.writeValueAsString(predictions));
+        } catch (JsonProcessingException e) {
+          throw new IllegalStateException("Failed to serialize predictions", e);
+        }
+
+        // Keep template data-* attributes consistent across rounds.
         model.addAttribute("currentStandingsJson", "{}");
       }
-    } else {
-      // Historical round - read-only
-      var predictions = dataService.getMyPredictionForRound(round);
-      int totalHits = predictions.stream()
-          .filter(p -> p.getHit() != null)
-          .mapToInt(PredictionRow::getHit)
-          .sum();
 
-      int score = 200 - totalHits;
-      model.addAttribute("predictions", predictions);
-      model.addAttribute("roundScore", score);
-      model.addAttribute("swapStatus", null); // No editing allowed
-
-      model.addAttribute("canSwap", false);
-      model.addAttribute("isInitialPrediction", false);
-      model.addAttribute("totalHits", totalHits); // No editing allowed
-
-      try {
-        model.addAttribute("predictionsJson", objectMapper.writeValueAsString(predictions));
-      } catch (JsonProcessingException e) {
-        throw new IllegalStateException("Failed to serialize predictions", e);
+      if (hxRequest != null && !hxRequest.isBlank()) {
+        return "predictions/me :: predictionPage";
       }
 
-      // Keep template data-* attributes consistent across rounds.
-      model.addAttribute("currentStandingsJson", "{}");
-    }
-
-    if (hxRequest != null && !hxRequest.isBlank()) {
-      return "predictions/me :: predictionPage";
-    }
-
-    return "predictions/me";
+      return "predictions/me";
   }
 
   @GetMapping("/predictions/me/swap-status")
