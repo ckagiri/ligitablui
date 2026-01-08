@@ -394,6 +394,17 @@ public class InMemoryDataService {
     return fixtures;
 }
 
+public Map<String, Integer> getCurrentPointsMap() {
+    List<StandingsRow> standings = getStandings();
+    Map<String, Integer> pointsMap = new HashMap<>();
+
+    for (StandingsRow row : standings) {
+        pointsMap.put(row.getTeamCode(), row.getPoints());
+    }
+
+    return pointsMap;
+}
+
 // Add inner class for Fixture
 @Data
 @AllArgsConstructor

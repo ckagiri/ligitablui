@@ -86,6 +86,14 @@ public class PlayerController {
         } catch (JsonProcessingException e) {
           model.addAttribute("currentStandingsJson", "{}");
         }
+
+        // Add points data
+        try {
+            Map<String, Integer> pointsMap = dataService.getCurrentPointsMap();
+            model.addAttribute("currentPointsJson", objectMapper.writeValueAsString(pointsMap));
+        } catch (JsonProcessingException e) {
+            model.addAttribute("currentPointsJson", "{}");
+        }
       } else {
         // Historical/completed - readonly - no fixtures needed
         var predictions = dataService.getMyPredictionForRound(round);

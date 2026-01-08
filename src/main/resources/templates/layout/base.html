@@ -291,6 +291,7 @@
             const isInitialRaw = el?.dataset?.isInitialPrediction ?? 'false';
             const currentStandingsRaw = el?.dataset?.currentStandings ?? '{}';
             const fixturesRaw = el?.dataset?.fixtures ?? '{}';
+            const currentPointsRaw = el?.dataset?.currentPoints ?? '{}';
 
             let predictions;
             try {
@@ -313,6 +314,13 @@
                 fixtures = {};
             }
 
+            let currentPoints;
+            try {
+                currentPoints = JSON.parse(currentPointsRaw);
+            } catch {
+                currentPoints = {};
+            }
+
             const canSwap = canSwapRaw === 'true' || canSwapRaw === 'True';
             const isInitialPrediction = isInitialRaw === 'true' || isInitialRaw === 'True';
 
@@ -324,9 +332,12 @@
                 isInitialPrediction,
                 showStandings: false,
                 showFixtures: false,
+                showPoints: false,
                 currentStandings,
                 fixtures,
+                currentPoints,
                 isSaving: false,
+
                 init() {
                     this.teams = (Array.isArray(predictions) ? predictions : []).map((p) => ({
                         position: p.position,
@@ -336,6 +347,10 @@
                         originalPosition: p.position,
                     }));
                     this.originalTeams = JSON.parse(JSON.stringify(this.teams));
+                },
+
+                getCurrentPoints(teamCode) {
+                    return this.currentPoints[teamCode] || '-';
                 },
 
                 getFixtures(teamCode) {
