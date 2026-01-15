@@ -1,35 +1,48 @@
-import { defineConfig } from 'vite';
-import { resolve } from 'path';
+import { defineConfig } from "vite";
+import { resolve } from "path";
 
-export default defineConfig({
-  build: {
-    outDir: resolve(__dirname, 'src/main/resources/static/dist'),
-    emptyOutDir: true,
+export default defineConfig(({ mode }) => {
+  const isDev = mode === "development";
 
-    rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'src/main/resources/static/css/main.css'),
+  return {
+    build: {
+      outDir: resolve(__dirname, "src/main/resources/static/dist"),
+      emptyOutDir: true,
+
+      rollupOptions: {
+        input: {
+          main: resolve(__dirname, "src/main/resources/static/css/main.css"),
+        },
+        output: {
+          assetFileNames: "css/[name][extname]",
+        },
       },
-      output: {
-        entryFileNames: 'js/[name]-[hash].js',
-        assetFileNames: (assetInfo) => {
-          if (assetInfo.name.endsWith('.css')) {
-            return 'css/[name]-[hash][extname]';
+
+      minify: isDev ? false : "terser",
+      terserOptions: !isDev
+        ? {
+            compress: {
+              drop_console: true,
+              drop_debugger: true,
+            },
           }
-          return 'assets/[name]-[hash][extname]';
-        }
-      }
+        : undefined,
     },
 
-    minify: 'terser',
-  },
+    css: {
+      postcss: {
+        plugins: [require("tailwindcss"), require("autoprefixer")],
+      },
+    },
 
-  css: {
-    postcss: {
-      plugins: [
-        require('tailwindcss'),
-        require('autoprefixer'),
-      ]
-    }
-  }
+    server: {
+      port: 5173,
+      proxy: {
+        "/api": {
+          target: "http://localhost:8080",
+          changeOrigin: true,
+        },
+      },
+    },
+  };
 });
