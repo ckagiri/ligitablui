@@ -12,6 +12,7 @@ import com.ligitabl.domain.model.seasonprediction.SeasonPrediction;
 import com.ligitabl.domain.model.seasonprediction.SeasonPredictionId;
 import com.ligitabl.domain.repository.MainContestEntryRepository;
 import com.ligitabl.domain.repository.SeasonPredictionRepository;
+import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -32,6 +33,7 @@ import java.util.Objects;
  * <p>This is the Railway-Oriented Programming boundary - domain operations
  * are wrapped in Either monad to provide type-safe error handling.</p>
  */
+@Service
 public class CreateSeasonPredictionUseCase {
 
     private final SeasonPredictionRepository seasonPredictionRepository;

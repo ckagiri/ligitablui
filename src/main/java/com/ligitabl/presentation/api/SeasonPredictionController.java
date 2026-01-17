@@ -287,6 +287,7 @@ public class SeasonPredictionController {
         SeasonPredictionResponse predictionResponse = viewMapper.toResponse(rankings);
         model.addAttribute("prediction", predictionResponse);
         model.addAttribute("source", rankings.source().name());
+        model.addAttribute("pageTitle", "Season Prediction");
 
         // Serialize rankings to JSON for Alpine.js
         try {

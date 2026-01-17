@@ -9,6 +9,7 @@ import com.ligitabl.domain.model.seasonprediction.TeamRanking;
 import com.ligitabl.domain.repository.RoundStandingsRepository;
 import com.ligitabl.domain.repository.SeasonPredictionRepository;
 import com.ligitabl.domain.repository.SeasonTeamRankingsRepository;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
@@ -24,6 +25,7 @@ import java.util.Objects;
  * <p>This is the Railway-Oriented Programming boundary - domain operations
  * are wrapped in Either monad to provide type-safe error handling.</p>
  */
+@Service
 public class GetSeasonPredictionUseCase {
 
     private final SeasonPredictionRepository seasonPredictionRepository;

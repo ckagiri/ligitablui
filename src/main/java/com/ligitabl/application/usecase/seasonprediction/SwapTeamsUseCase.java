@@ -8,6 +8,7 @@ import com.ligitabl.domain.model.season.RoundNumber;
 import com.ligitabl.domain.model.seasonprediction.SeasonPrediction;
 import com.ligitabl.domain.model.seasonprediction.SwapPair;
 import com.ligitabl.domain.repository.SeasonPredictionRepository;
+import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -31,6 +32,7 @@ import java.util.Objects;
  * <p>This is the Railway-Oriented Programming boundary - domain operations
  * are wrapped in Either monad to provide type-safe error handling.</p>
  */
+@Service
 public class SwapTeamsUseCase {
 
     private final SeasonPredictionRepository seasonPredictionRepository;
