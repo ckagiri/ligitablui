@@ -614,6 +614,259 @@
             };
         };
 
+        // Season Prediction Page Component (New Clean Architecture)
+        window.Ligitabl.seasonPredictionPage = function (el) {
+            const rankingsRaw = el?.dataset?.rankings ?? '[]';
+            const source = el?.dataset?.source ?? 'SEASON_BASELINE';
+            const hasPredictionRaw = el?.dataset?.hasPrediction ?? 'false';
+
+            let rankings;
+            try {
+                rankings = JSON.parse(rankingsRaw);
+            } catch {
+                rankings = [];
+            }
+
+            const hasSeasonPrediction = hasPredictionRaw === 'true' || hasPredictionRaw === 'True';
+
+            return {
+                rankings: [],
+                originalRankings: [],
+                selectedTeam: null,
+                hasSeasonPrediction,
+                source,
+                isSaving: false,
+
+                init() {
+                    this.rankings = rankings.map(r => ({
+                        position: r.position,
+                        team: {
+                            id: r.team.id,
+                            code: r.team.code,
+                            name: r.team.name,
+                            crestUrl: r.team.crestUrl
+                        },
+                        originalPosition: r.position
+                    }));
+                    this.originalRankings = JSON.parse(JSON.stringify(this.rankings));
+                },
+
+                get canModify() {
+                    // Can always modify if no prediction yet
+                    if (!this.hasSeasonPrediction) return true;
+                    // If have prediction, can only do single swap
+                    return true;
+                },
+
+                isSelected(teamCode) {
+                    return this.selectedTeam === teamCode;
+                },
+
+                isDirty(teamCode) {
+                    const ranking = this.rankings.find(r => r.team.code === teamCode);
+                    if (!ranking) return false;
+                    return ranking.position !== ranking.originalPosition;
+                },
+
+                getDirtyCount() {
+                    return this.rankings.filter(r => r.position !== r.originalPosition).length;
+                },
+
+                getSwapCount() {
+                    const changedTeams = this.getDirtyCount();
+                    return Math.ceil(changedTeams / 2);
+                },
+
+                getChangedTeams() {
+                    return this.rankings
+                        .filter(r => r.position !== r.originalPosition)
+                        .map(r => {
+                            const change = r.originalPosition - r.position;
+                            return {
+                                name: r.team.name,
+                                code: r.team.code,
+                                from: r.originalPosition,
+                                to: r.position,
+                                direction: change > 0 ? 'up' : 'down'
+                            };
+                        })
+                        .sort((a, b) => a.from - b.from);
+                },
+
+                getPositionChange(teamCode) {
+                    const ranking = this.rankings.find(r => r.team.code === teamCode);
+                    if (!ranking) return null;
+                    const change = ranking.originalPosition - ranking.position;
+                    if (change === 0) return null;
+                    return change > 0 ? `↑${change}` : `↓${Math.abs(change)}`;
+                },
+
+                teamClick(teamCode) {
+                    if (!this.canModify) return;
+
+                    if (this.selectedTeam === null) {
+                        this.selectedTeam = teamCode;
+                        this.$nextTick(() => {
+                            const row = document.querySelector(`[data-team-code='${teamCode}']`);
+                            if (row) {
+                                row.classList.add('selected-pulse');
+                                setTimeout(() => row.classList.remove('selected-pulse'), 300);
+                            }
+                        });
+                        return;
+                    }
+
+                    if (this.selectedTeam === teamCode) {
+                        this.selectedTeam = null;
+                        return;
+                    }
+
+                    // Perform swap
+                    const index1 = this.rankings.findIndex(r => r.team.code === this.selectedTeam);
+                    const index2 = this.rankings.findIndex(r => r.team.code === teamCode);
+
+                    if (index1 < 0 || index2 < 0) {
+                        this.selectedTeam = null;
+                        return;
+                    }
+
+                    const team1Code = this.selectedTeam;
+                    const team2Code = teamCode;
+
+                    // Visual feedback
+                    const row1 = document.querySelector(`[data-team-code='${team1Code}']`);
+                    const row2 = document.querySelector(`[data-team-code='${team2Code}']`);
+
+                    if (row1) row1.classList.add('swapping');
+                    if (row2) row2.classList.add('swapping');
+
+                    setTimeout(() => {
+                        if (row1) row1.classList.remove('swapping');
+                        if (row2) row2.classList.remove('swapping');
+                    }, 600);
+
+                    // Swap positions
+                    const temp = this.rankings[index1];
+                    this.rankings[index1] = this.rankings[index2];
+                    this.rankings[index2] = temp;
+
+                    // Recalculate positions
+                    this.rankings.forEach((r, idx) => {
+                        r.position = idx + 1;
+                    });
+
+                    this.selectedTeam = null;
+                },
+
+                reset() {
+                    this.rankings = JSON.parse(JSON.stringify(this.originalRankings));
+                    this.selectedTeam = null;
+                },
+
+                canUpdate() {
+                    const swapCount = this.getSwapCount();
+                    if (swapCount === 0) return false;
+
+                    // If have prediction, only allow 1 swap
+                    if (this.hasSeasonPrediction && swapCount > 1) return false;
+
+                    return true;
+                },
+
+                exceedsLimit() {
+                    return this.hasSeasonPrediction && this.getSwapCount() > 1;
+                },
+
+                submitChanges() {
+                    this.isSaving = true;
+
+                    if (!this.hasSeasonPrediction) {
+                        // Initial prediction - submit all rankings
+                        this.submitInitialPrediction();
+                    } else {
+                        // Already have prediction - submit single swap
+                        this.submitSwap();
+                    }
+                },
+
+                submitInitialPrediction() {
+                    const teamRankings = this.rankings.map(r => ({
+                        teamId: r.team.id,
+                        position: r.position
+                    }));
+
+                    fetch('/seasonprediction', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ teamRankings }),
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(err => Promise.reject(err));
+                            }
+                            return response.json();
+                        })
+                        .then(() => {
+                            window.location.reload();
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            this.isSaving = false;
+                            alert('Failed to submit prediction: ' + (error.message || 'Unknown error'));
+                        });
+                },
+
+                submitSwap() {
+                    // Find the two teams that were swapped
+                    const changed = this.getChangedTeams();
+
+                    if (changed.length !== 2) {
+                        alert('Please make exactly one swap');
+                        this.isSaving = false;
+                        return;
+                    }
+
+                    const team1 = this.rankings.find(r => r.team.code === changed[0].code);
+                    const team2 = this.rankings.find(r => r.team.code === changed[1].code);
+
+                    const swapRequest = {
+                        teamA: {
+                            teamId: team1.team.id,
+                            currentPosition: team1.originalPosition
+                        },
+                        teamB: {
+                            teamId: team2.team.id,
+                            currentPosition: team2.originalPosition
+                        }
+                    };
+
+                    fetch('/seasonprediction/swap', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(swapRequest),
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(err => Promise.reject(err));
+                            }
+                            return response.json();
+                        })
+                        .then(() => {
+                            window.location.reload();
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            this.isSaving = false;
+                            alert('Failed to submit swap: ' + (error.message || 'Unknown error'));
+                        });
+                }
+            };
+        };
+
         document.body.addEventListener('htmx:afterSwap', (event) => {
             if (!window.Alpine || !event.detail?.target) return;
             const target = event.detail.target;
