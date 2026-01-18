@@ -104,15 +104,19 @@ public class SeasonPredictionController {
             ? UserId.of(principal.getName())
             : UserId.generate(); // Temp ID for guest
 
-        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.of(userId, activeSeasonId);
+        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.forSeason(userId, activeSeasonId);
 
-        Either<UseCaseError, GetSeasonPredictionUseCase.RankingsWithSource> result =
+        Either<UseCaseError, GetSeasonPredictionUseCase.PredictionViewData> result =
             getSeasonPredictionUseCase.execute(command);
 
         // Railway-Oriented fold pattern
         return result.fold(
             error -> handleError(error, model, response, hxRequest),
-            rankings -> handleGetSuccess(rankings, model, hxRequest)
+            data -> handleGetSuccess(
+                new GetSeasonPredictionUseCase.RankingsWithSource(data.source(), data.rankings()),
+                model,
+                hxRequest
+            )
         );
     }
 

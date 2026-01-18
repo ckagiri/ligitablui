@@ -25,6 +25,32 @@ public class RankingDTO {
         return team;
     }
 
+    // Convenience methods for flat access (compatible with predictions/me.html template)
+    public String getCode() {
+        return team.getCode();
+    }
+
+    public String getName() {
+        return team.getName();
+    }
+
+    public String getTeamCode() {
+        return team.getCode();
+    }
+
+    public String getTeamName() {
+        return team.getName();
+    }
+
+    // Placeholder for historical predictions - not applicable for season predictions
+    public Integer getHit() {
+        return null;
+    }
+
+    public Integer getActualPosition() {
+        return null;
+    }
+
     /**
      * Check if this is a Champions League position (1-4).
      *

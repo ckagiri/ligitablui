@@ -6,6 +6,7 @@ import com.ligitabl.api.shared.Either;
 import com.ligitabl.application.command.GetSeasonPredictionCommand;
 import com.ligitabl.application.error.UseCaseError;
 import com.ligitabl.application.usecase.seasonprediction.GetSeasonPredictionUseCase;
+import com.ligitabl.domain.model.prediction.SwapCooldown;
 import com.ligitabl.domain.model.season.SeasonId;
 import com.ligitabl.domain.model.seasonprediction.RankingSource;
 import com.ligitabl.domain.model.seasonprediction.TeamRanking;
@@ -95,13 +96,13 @@ public class PredictionsController {
             : GetSeasonPredictionCommand.forRound(userId, activeSeasonId, round);
 
         // Execute use case
-        Either<UseCaseError, GetSeasonPredictionUseCase.RankingsWithSource> result =
+        Either<UseCaseError, GetSeasonPredictionUseCase.PredictionViewData> result =
             getSeasonPredictionUseCase.execute(command);
 
         // Handle result with fold pattern
         return result.fold(
             error -> handleError(error, model, response, hxRequest),
-            rankings -> handleSuccess(rankings, round, isCurrentRound, isGuestUser, model, hxRequest)
+            data -> handleSuccess(data, model, hxRequest)
         );
     }
 
@@ -123,52 +124,76 @@ public class PredictionsController {
     }
 
     private String handleSuccess(
-        GetSeasonPredictionUseCase.RankingsWithSource data,
-        int viewingRound,
-        boolean isCurrentRound,
-        boolean isGuestUser,
+        GetSeasonPredictionUseCase.PredictionViewData data,
         Model model,
         String hxRequest
     ) {
         List<TeamRanking> rankings = data.rankings();
         RankingSource source = data.source();
 
-        // Determine if user can modify (only current round, authenticated, and has prediction)
-        boolean canModify = isCurrentRound
-            && !isGuestUser
-            && source == RankingSource.USER_PREDICTION;
-
-        boolean hasSeasonPrediction = source == RankingSource.USER_PREDICTION;
-
-        // Set model attributes
-        model.addAttribute("pageTitle", "My Predictions - Round " + viewingRound);
-        model.addAttribute("currentRound", CURRENT_ROUND);
-        model.addAttribute("viewingRound", viewingRound);
-        model.addAttribute("isCurrentRound", isCurrentRound);
-        model.addAttribute("isGuestUser", isGuestUser);
-        model.addAttribute("source", source);
-        model.addAttribute("canSwap", canModify);
-        model.addAttribute("hasSeasonPrediction", hasSeasonPrediction);
-
-        // Convert TeamRanking to RankingDTO for template
-        List<RankingDTO> rankingDTOs = rankings.stream()
+        // Convert TeamRanking to RankingDTO (similar to PredictionRow in RoundPredictionController)
+        List<RankingDTO> predictions = rankings.stream()
             .map(viewMapper::toRankingDTO)
             .toList();
 
-        // Serialize rankings for JavaScript
+        // Set model attributes to match RoundPredictionController
+        model.addAttribute("pageTitle", "My Predictions");
+        model.addAttribute("currentRound", data.currentRound());
+        model.addAttribute("viewingRound", data.viewingRound());
+        model.addAttribute("isCurrentRound", data.isCurrentRound());
+        model.addAttribute("roundState", data.roundState().toLowerCase());
+        model.addAttribute("predictions", predictions);
+        model.addAttribute("canSwap", data.canSwap());
+        model.addAttribute("isInitialPrediction", data.isInitialPrediction());
+        model.addAttribute("roundScore", data.roundScore());
+        model.addAttribute("totalHits", data.totalHits());
+
+        // Convert swap status if available (matching RoundPredictionController logic)
+        if (data.swapCooldown() != null) {
+            // For now, we'll set a simplified swap status
+            // TODO: Create proper SwapStatusResponse DTO like RoundPredictionController
+            model.addAttribute("swapStatus", createSwapStatusResponse(data.swapCooldown(), data.roundState()));
+        } else {
+            model.addAttribute("swapStatus", null);
+        }
+
+        // Serialize data for JavaScript
         try {
-            String rankingsJson = objectMapper.writeValueAsString(rankingDTOs);
-            model.addAttribute("rankingsJson", rankingsJson);
+            model.addAttribute("fixturesJson", objectMapper.writeValueAsString(data.fixtures()));
+            model.addAttribute("predictionsJson", objectMapper.writeValueAsString(predictions));
+            model.addAttribute("currentStandingsJson", objectMapper.writeValueAsString(data.standingsMap()));
+            model.addAttribute("currentPointsJson", objectMapper.writeValueAsString(data.pointsMap()));
         } catch (JsonProcessingException e) {
-            log.error("Failed to serialize rankings", e);
-            model.addAttribute("rankingsJson", "[]");
+            log.error("Failed to serialize data", e);
+            model.addAttribute("fixturesJson", "{}");
+            model.addAttribute("predictionsJson", "[]");
+            model.addAttribute("currentStandingsJson", "{}");
+            model.addAttribute("currentPointsJson", "{}");
         }
 
         // Return appropriate view
         if (hxRequest != null && !hxRequest.isBlank()) {
-            return "predictions2/me :: prediction-page";
+            return "predictions2/me :: predictionPage";
         }
         return "predictions2/me";
+    }
+
+    /**
+     * Create a simple swap status response object.
+     * TODO: Use proper mapper like RoundPredictionController does.
+     */
+    private Object createSwapStatusResponse(SwapCooldown swapCooldown, String roundState) {
+        // For now, create a simple map
+        // In a real implementation, we'd use the PredictionViewMapper
+        return new java.util.HashMap<String, Object>() {{
+            put("canSwap", swapCooldown.canSwap(java.time.Instant.now()));
+            put("message", swapCooldown.canSwap(java.time.Instant.now())
+                ? "Ready to swap"
+                : "Cooldown active. Next change available soon.");
+            put("lastSwapAt", swapCooldown.lastSwapAt() != null
+                ? swapCooldown.lastSwapAt().toString()
+                : "Never");
+        }};
     }
 
     private int mapErrorToStatus(UseCaseError error) {
