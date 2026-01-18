@@ -32,19 +32,19 @@ public class AuthController {
             BindingResult result,
             RedirectAttributes redirectAttributes,
             Model model) {
-        
+
         model.addAttribute("isDemo", true);
-        
+
         if (result.hasErrors()) {
             model.addAttribute("pageTitle", "Register");
             return "auth/register";
         }
-        
+
         // In demo mode, just redirect to predictions
-        redirectAttributes.addFlashAttribute("message", 
+        redirectAttributes.addFlashAttribute("message",
             "Demo Mode: Registration successful! You're automatically logged in as " + form.getDisplayName());
         redirectAttributes.addFlashAttribute("messageType", "success");
-        
+
         return "redirect:/predictions/me";
     }
 
@@ -62,28 +62,28 @@ public class AuthController {
             BindingResult result,
             RedirectAttributes redirectAttributes,
             Model model) {
-        
+
         model.addAttribute("isDemo", true);
-        
+
         if (result.hasErrors()) {
             model.addAttribute("pageTitle", "Login");
             return "auth/login";
         }
-        
+
         // In demo mode, just redirect to predictions
-        redirectAttributes.addFlashAttribute("message", 
+        redirectAttributes.addFlashAttribute("message",
             "Demo Mode: Login successful! Welcome back!");
         redirectAttributes.addFlashAttribute("messageType", "success");
-        
+
         return "redirect:/predictions/me";
     }
 
     @GetMapping("/logout")
     public String logout(RedirectAttributes redirectAttributes) {
-        redirectAttributes.addFlashAttribute("message", 
+        redirectAttributes.addFlashAttribute("message",
             "Demo Mode: You've been logged out.");
         redirectAttributes.addFlashAttribute("messageType", "info");
-        
+
         return "redirect:/";
     }
 

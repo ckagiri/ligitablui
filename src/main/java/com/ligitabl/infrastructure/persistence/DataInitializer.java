@@ -73,7 +73,7 @@ public class DataInitializer implements CommandLineRunner {
     /**
      * Create baseline rankings for all 20 teams.
      *
-     * <p>Uses fixed UUID-based team IDs for consistency.
+     * <p>Uses team IDs with team codes embedded (format: team-{code}-{uuid}).
      * Order represents last season's finish or pre-season predictions.</p>
      *
      * @return list of 20 team rankings
@@ -81,28 +81,27 @@ public class DataInitializer implements CommandLineRunner {
     private List<TeamRanking> createBaselineRankings() {
         List<TeamRanking> rankings = new ArrayList<>();
 
-        // Create 20 teams with fixed UUIDs (for consistency across restarts)
-        // Format: 00000000-0000-0000-0000-00000000000X where X is the position
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000001"), 1));  // Manchester City
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000002"), 2));  // Arsenal
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000003"), 3));  // Liverpool
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000004"), 4));  // Aston Villa
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000005"), 5));  // Tottenham
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000006"), 6));  // Chelsea
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000007"), 7));  // Newcastle
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000008"), 8));  // Man United
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000009"), 9));  // West Ham
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000010"), 10)); // Brighton
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000011"), 11)); // Wolves
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000012"), 12)); // Fulham
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000013"), 13)); // Bournemouth
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000014"), 14)); // Crystal Palace
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000015"), 15)); // Brentford
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000016"), 16)); // Everton
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000017"), 17)); // Nottingham Forest
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000018"), 18)); // Leeds United
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000019"), 19)); // Burnley
-        rankings.add(TeamRanking.create(TeamId.of("00000000-0000-0000-0000-000000000020"), 20)); // Sunderland
+        // Create 20 teams with team code embedded in ID (format: team-{code}-{uuid})
+        rankings.add(TeamRanking.create(TeamId.of("team-mci-000000000001"), 1));  // Manchester City
+        rankings.add(TeamRanking.create(TeamId.of("team-ars-000000000002"), 2));  // Arsenal
+        rankings.add(TeamRanking.create(TeamId.of("team-liv-000000000003"), 3));  // Liverpool
+        rankings.add(TeamRanking.create(TeamId.of("team-avl-000000000004"), 4));  // Aston Villa
+        rankings.add(TeamRanking.create(TeamId.of("team-tot-000000000005"), 5));  // Tottenham
+        rankings.add(TeamRanking.create(TeamId.of("team-che-000000000006"), 6));  // Chelsea
+        rankings.add(TeamRanking.create(TeamId.of("team-new-000000000007"), 7));  // Newcastle
+        rankings.add(TeamRanking.create(TeamId.of("team-mun-000000000008"), 8));  // Man United
+        rankings.add(TeamRanking.create(TeamId.of("team-whu-000000000009"), 9));  // West Ham
+        rankings.add(TeamRanking.create(TeamId.of("team-bha-000000000010"), 10)); // Brighton
+        rankings.add(TeamRanking.create(TeamId.of("team-wol-000000000011"), 11)); // Wolves
+        rankings.add(TeamRanking.create(TeamId.of("team-ful-000000000012"), 12)); // Fulham
+        rankings.add(TeamRanking.create(TeamId.of("team-bou-000000000013"), 13)); // Bournemouth
+        rankings.add(TeamRanking.create(TeamId.of("team-cry-000000000014"), 14)); // Crystal Palace
+        rankings.add(TeamRanking.create(TeamId.of("team-bre-000000000015"), 15)); // Brentford
+        rankings.add(TeamRanking.create(TeamId.of("team-eve-000000000016"), 16)); // Everton
+        rankings.add(TeamRanking.create(TeamId.of("team-nfo-000000000017"), 17)); // Nottingham Forest
+        rankings.add(TeamRanking.create(TeamId.of("team-lee-000000000018"), 18)); // Leeds United
+        rankings.add(TeamRanking.create(TeamId.of("team-bur-000000000019"), 19)); // Burnley
+        rankings.add(TeamRanking.create(TeamId.of("team-sun-000000000020"), 20)); // Sunderland
 
         return rankings;
     }

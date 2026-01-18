@@ -1,162 +1,29 @@
 package com.ligitabl.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ligitabl.dto.Responses;
 import com.ligitabl.dto.Responses.LatestResultResponse;
-import com.ligitabl.dto.Responses.PredictionRow;
 import com.ligitabl.service.InMemoryDataService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.List;
-import java.util.Map;
-
+/**
+ * Controller for player-related endpoints that haven't been migrated yet.
+ *
+ * <p>Note: Most prediction endpoints have been migrated to RoundPredictionController.
+ * This controller now only handles:
+ * - Latest result endpoints
+ * - User predictions view
+ * - My contests page
+ * </p>
+ */
 @Controller
 public class PlayerController {
 
   private final InMemoryDataService dataService;
-  private final ObjectMapper objectMapper;
 
-  public PlayerController(InMemoryDataService dataService, ObjectMapper objectMapper) {
+  public PlayerController(InMemoryDataService dataService) {
     this.dataService = dataService;
-    this.objectMapper = objectMapper;
-  }
-
-  @GetMapping("/predictions/demo-reset")
-  public String resetDemo(RedirectAttributes redirectAttributes) {
-    dataService.resetDemoState();
-    redirectAttributes.addFlashAttribute("message", "Demo reset! Start from initial prediction again.");
-    redirectAttributes.addFlashAttribute("messageType", "success");
-    return "redirect:/predictions/me";
-  }
-
-  @GetMapping("/predictions/me")
-  public String myPredictions(
-      @RequestParam(required = false, defaultValue = "19") Integer round,
-      @RequestParam(required = false, defaultValue = "open") String state,
-      @RequestHeader(value = "HX-Request", required = false) String hxRequest,
-      Model model) {
-
-      int currentRound = dataService.getCurrentRound();
-      boolean isCurrentRound = (round == currentRound);
-
-      model.addAttribute("pageTitle", "My Predictions");
-      model.addAttribute("currentRound", currentRound);
-      model.addAttribute("viewingRound", round);
-      model.addAttribute("isCurrentRound", isCurrentRound);
-      model.addAttribute("roundState", state);
-
-      boolean isOpen = "open".equals(state);
-      boolean isLocked = "locked".equals(state);
-      boolean isCompleted = "completed".equals(state);
-
-      if (isCurrentRound && (isOpen || isLocked)) {
-        var predictions = dataService.getMyPrediction();
-        var swapStatus = dataService.getSwapStatus();
-        boolean canSwap = isOpen && swapStatus != null && Boolean.TRUE.equals(swapStatus.getCanSwap());
-        boolean isInitialPrediction = swapStatus != null && "Never".equals(swapStatus.getLastSwapAt());
-
-        model.addAttribute("predictions", predictions);
-        model.addAttribute("swapStatus", swapStatus);
-        model.addAttribute("canSwap", canSwap);
-        model.addAttribute("isInitialPrediction", isInitialPrediction);
-        model.addAttribute("roundScore", null);
-        model.addAttribute("totalHits", null);
-
-        // Add fixtures for open/locked rounds
-        Map<String, List<InMemoryDataService.Fixture>> fixtures = dataService.getFixturesForRound(round);
-        try {
-          model.addAttribute("fixturesJson", objectMapper.writeValueAsString(fixtures));
-        } catch (JsonProcessingException e) {
-          model.addAttribute("fixturesJson", "{}");
-        }
-
-        try {
-          model.addAttribute("predictionsJson", objectMapper.writeValueAsString(predictions));
-        } catch (JsonProcessingException e) {
-          throw new IllegalStateException("Failed to serialize predictions", e);
-        }
-
-        try {
-          Map<String, Integer> standingsMap = dataService.getCurrentStandingsMap();
-          model.addAttribute("currentStandingsJson", objectMapper.writeValueAsString(standingsMap));
-        } catch (JsonProcessingException e) {
-          model.addAttribute("currentStandingsJson", "{}");
-        }
-
-        // Add points data
-        try {
-            Map<String, Integer> pointsMap = dataService.getCurrentPointsMap();
-            model.addAttribute("currentPointsJson", objectMapper.writeValueAsString(pointsMap));
-        } catch (JsonProcessingException e) {
-            model.addAttribute("currentPointsJson", "{}");
-        }
-      } else {
-        // Historical/completed - readonly - no fixtures needed
-        var predictions = dataService.getMyPredictionForRound(round);
-        int totalHits = predictions.stream()
-            .filter(p -> p.getHit() != null)
-            .mapToInt(PredictionRow::getHit)
-            .sum();
-
-        int score = 200 - totalHits;
-        model.addAttribute("predictions", predictions);
-        model.addAttribute("roundScore", score);
-        model.addAttribute("swapStatus", null);
-        model.addAttribute("canSwap", false);
-        model.addAttribute("isInitialPrediction", false);
-        model.addAttribute("totalHits", totalHits);
-        model.addAttribute("fixturesJson", "{}");
-
-        try {
-          model.addAttribute("predictionsJson", objectMapper.writeValueAsString(predictions));
-        } catch (JsonProcessingException e) {
-          throw new IllegalStateException("Failed to serialize predictions", e);
-        }
-
-        // Keep template data-* attributes consistent across rounds.
-        model.addAttribute("currentStandingsJson", "{}");
-      }
-
-      if (hxRequest != null && !hxRequest.isBlank()) {
-        return "predictions/me :: predictionPage";
-      }
-
-      return "predictions/me";
-  }
-
-  @GetMapping("/predictions/me/swap-status")
-  @ResponseBody
-  public Responses.SwapStatusResponse getSwapStatus() {
-    return dataService.getSwapStatus();
-  }
-
-  @PostMapping("/predictions/swap")
-  public String makeSwap(
-      @RequestParam String teamA,
-      @RequestParam String teamB,
-      Model model) {
-
-    // Perform swap
-    dataService.swapTeams(teamA, teamB);
-
-    // Return updated prediction table fragment
-    model.addAttribute("predictions", dataService.getMyPrediction());
-    return "fragments/prediction-table";
-  }
-
-  @PostMapping("/predictions/swap-multiple")
-  @ResponseBody
-  public Map<String, Object> makeMultipleSwaps(@RequestBody Map<String, List<String>> request) {
-    List<String> teamCodes = request.get("teamCodes");
-
-    // Update the prediction with new order
-    dataService.updatePredictionOrder(teamCodes);
-
-    return Map.of("success", true, "message", "Prediction updated successfully");
   }
 
   @GetMapping("/predictions/me/latest-result")

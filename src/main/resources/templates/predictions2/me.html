@@ -4,18 +4,21 @@
       layout:decorate="~{layout/base}">
 <body>
 <div layout:fragment="content">
-    <div id="season-prediction-page" class="max-w-4xl mx-auto">
+    <div id="prediction-page" th:fragment="predictionPage" class="max-w-4xl mx-auto">
         <!-- Page Header -->
         <div class="bg-white rounded-lg shadow-sm mb-6">
             <div class="px-6 py-4 border-b border-gray-200">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4 sm:mb-6">
                     <div class="flex flex-col sm:flex-row sm:items-baseline sm:gap-2">
                         <h1 class="text-xl sm:text-2xl font-bold text-gray-900">
-                            Season Prediction
+                            My Predictions
                         </h1>
-                        <div th:if="${source == 'USER_PREDICTION'}" class="flex items-center gap-2 mt-1 sm:mt-0">
-                            <span class="text-xs sm:text-sm font-medium text-indigo-600">
-                                (Your Prediction)
+                        <div class="flex items-center gap-2 mt-1 sm:mt-0">
+                            <span class="text-sm sm:text-base text-gray-600">
+                                Round <span th:text="${viewingRound}">19</span>
+                            </span>
+                            <span th:if="${isCurrentRound}" class="text-xs sm:text-sm font-medium text-green-600">
+                                (Current)
                             </span>
                         </div>
                     </div>
@@ -24,17 +27,17 @@
                 <!-- Status Indicator -->
                 <div class="mb-4 sm:mb-6">
                     <div class="inline-flex items-center gap-2 text-sm">
-                        <span th:if="${source == 'USER_PREDICTION'}"
+                        <span th:if="${source.name() == 'USER_PREDICTION'}"
                               class="flex items-center gap-1.5 text-green-600 font-medium">
                             <span class="w-2 h-2 bg-green-600 rounded-full"></span>
                             Ready to modify
                         </span>
-                        <span th:if="${source == 'ROUND_STANDINGS'}"
+                        <span th:if="${source.name() == 'ROUND_STANDINGS'}"
                               class="flex items-center gap-1.5 text-blue-600 font-medium">
                             <span class="w-2 h-2 bg-blue-600 rounded-full"></span>
                             Based on Current Standings
                         </span>
-                        <span th:if="${source == 'SEASON_BASELINE'}"
+                        <span th:if="${source.name() == 'SEASON_BASELINE'}"
                               class="flex items-center gap-1.5 text-gray-600 font-medium">
                             <span class="w-2 h-2 bg-gray-600 rounded-full"></span>
                             Season Baseline
@@ -42,22 +45,25 @@
                     </div>
                 </div>
 
-                <!-- Source Selection -->
+                <!-- Round Navigation -->
                 <div class="flex flex-col space-y-3">
                     <div class="flex items-center gap-2">
-                        <label class="text-sm font-medium text-gray-700">View:</label>
-                        <select th:attr="hx-get=@{/seasonprediction}"
+                        <label class="text-sm font-medium text-gray-700">Round:</label>
+                        <select th:attr="hx-get=@{/predictions2/me}"
                                 hx-trigger="change"
-                                hx-target="#season-prediction-page"
+                                hx-target="#prediction-page"
                                 hx-swap="outerHTML swap:300ms"
                                 hx-push-url="true"
                                 hx-include="this"
-                                name="source"
+                                name="round"
                                 class="flex-1 sm:flex-initial sm:w-auto sm:min-w-[200px] px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                                 style="appearance: none; background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23374151%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e'); background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1em;">
-                            <option value="USER_PREDICTION" th:selected="${source == 'USER_PREDICTION'}">My Prediction</option>
-                            <option value="ROUND_STANDINGS" th:selected="${source == 'ROUND_STANDINGS'}">Current Standings</option>
-                            <option value="SEASON_BASELINE" th:selected="${source == 'SEASON_BASELINE'}">Season Baseline</option>
+                            <option th:each="r : ${#numbers.sequence(1, currentRound)}"
+                                    th:value="${r}"
+                                    th:selected="${r == viewingRound}"
+                                    th:text="${r == currentRound ? 'Round ' + r + ' (Current)' : 'Round ' + r}">
+                                Round 19 (Current)
+                            </option>
                         </select>
                     </div>
                 </div>
@@ -67,7 +73,7 @@
             <div th:fragment="rankings-table" id="rankings-table"
                  x-data="Ligitabl.seasonPredictionPage($el)"
                  th:attr="data-rankings=${rankingsJson},
-                          data-source=${source},
+                          data-source=${source.name()},
                           data-has-prediction=${hasSeasonPrediction}">
 
                 <!-- Rankings List -->
@@ -88,10 +94,9 @@
 
                             <!-- Team Info -->
                             <div class="flex-1 flex items-center gap-3 ml-4">
-                                <img :src="ranking.team.crestUrl"
-                                     :alt="ranking.team.name"
-                                     class="w-8 h-8 object-contain"
-                                     onerror="this.src='/images/default-crest.png'">
+                                <div class="h-8 w-8 bg-gray-200 rounded flex items-center justify-center text-xs font-bold"
+                                     x-text="ranking.team.code">
+                                </div>
                                 <div class="flex-1">
                                     <div class="font-medium text-gray-900" x-text="ranking.team.name">Team Name</div>
                                     <div class="text-xs text-gray-500" x-text="ranking.team.code">CODE</div>
@@ -148,7 +153,6 @@
                         <!-- Changes Summary -->
                         <div x-cloak x-show="getDirtyCount() > 0" class="w-full max-w-md">
                             <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
-                                <!-- Header -->
                                 <div class="flex items-center justify-between mb-3">
                                     <button @click="reset()"
                                             class="text-sm font-medium text-red-600 hover:text-red-700 underline flex items-center gap-1">
@@ -207,22 +211,6 @@
                                             </div>
                                         </div>
                                     </template>
-                                </div>
-
-                                <!-- Warning for exceeding limit -->
-                                <div x-cloak x-show="exceedsLimit()"
-                                     class="mt-3 pt-3 border-t border-red-100 bg-red-50 -mx-4 -mb-4 px-4 py-3 rounded-b-lg">
-                                    <div class="flex items-start">
-                                        <svg class="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                                        </svg>
-                                        <div class="flex-1">
-                                            <p class="text-xs font-semibold text-red-800">Too many changes</p>
-                                            <p class="text-xs text-red-700 mt-0.5">
-                                                Only 1 swap allowed per request. Reset to continue.
-                                            </p>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>

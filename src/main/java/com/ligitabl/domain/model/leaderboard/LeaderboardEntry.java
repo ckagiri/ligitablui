@@ -71,6 +71,7 @@ public class LeaderboardEntry {
 
     /**
      * Factory method to create from raw values (for repository mapping).
+     * Note: Parameter order matches the legacy DTO constructor order.
      */
     public static LeaderboardEntry fromRaw(
         int position,
@@ -78,9 +79,9 @@ public class LeaderboardEntry {
         String displayName,
         int totalScore,
         int roundScore,
-        int totalZeroes,
+        int totalPoints,        // Swapped position with totalZeroes to match legacy order
         int totalSwaps,
-        int totalPoints,
+        int totalZeroes,        // Swapped position with totalPoints to match legacy order
         int movement
     ) {
         return create(

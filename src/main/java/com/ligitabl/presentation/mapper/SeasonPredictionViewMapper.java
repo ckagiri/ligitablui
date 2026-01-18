@@ -90,7 +90,7 @@ public class SeasonPredictionViewMapper {
      * @param ranking the team ranking
      * @return ranking DTO
      */
-    private RankingDTO toRankingDTO(TeamRanking ranking) {
+    public RankingDTO toRankingDTO(TeamRanking ranking) {
         // For now, create basic team DTO from TeamId
         // In a real implementation, we'd look up full team details from a repository
         RankingDTO.TeamDTO teamDTO = createTeamDTO(ranking.teamId());
@@ -118,7 +118,7 @@ public class SeasonPredictionViewMapper {
             id,
             code,
             name,
-            "/images/crests/" + code.toLowerCase() + ".png"
+            null  // Crest URLs not used in this view
         );
     }
 

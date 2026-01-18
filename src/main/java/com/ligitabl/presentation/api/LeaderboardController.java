@@ -29,7 +29,7 @@ public class LeaderboardController {
     private final LeaderboardViewMapper viewMapper;
 
     // Stub values - in production these would come from auth/session
-    private static final String CURRENT_USER_ID = "current-user-id";
+    private static final String CURRENT_USER_ID = "00000000-0000-0000-0000-000000000000";
     private static final String CURRENT_USER_NAME = "Deejay Wagz";
     private static final int CURRENT_ROUND = 19;
 

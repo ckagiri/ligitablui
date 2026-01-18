@@ -20,23 +20,23 @@ import java.util.Optional;
 @Repository
 public class InMemoryLeaderboardRepository implements LeaderboardRepository {
 
-    // Stub leaderboard data
+    // Stub leaderboard data (using valid UUIDs)
     private static final List<LeaderboardEntry> STUB_LEADERBOARD = List.of(
-        LeaderboardEntry.fromRaw(1, "user1", "Alice Wonder", 1850, 45, 198, 23, 52, 0),
-        LeaderboardEntry.fromRaw(2, "user2", "Bob Smith", 1850, 45, 195, 28, 52, -1),
-        LeaderboardEntry.fromRaw(3, "user3", "Carol Jones", 1845, 44, 200, 20, 52, 2),
-        LeaderboardEntry.fromRaw(4, "user4", "Dave Brown", 1840, 50, 190, 15, 50, -1),
-        LeaderboardEntry.fromRaw(5, "user5", "Eve Davis", 1825, 42, 185, 31, 48, 1),
-        LeaderboardEntry.fromRaw(6, "user6", "Frank Miller", 1810, 38, 180, 29, 46, -2),
-        LeaderboardEntry.fromRaw(7, "user7", "Grace Wilson", 1805, 41, 178, 25, 45, 3),
-        LeaderboardEntry.fromRaw(8, "user8", "Henry Moore", 1795, 37, 175, 33, 44, 0),
-        LeaderboardEntry.fromRaw(9, "user9", "Ivy Taylor", 1780, 35, 172, 27, 42, -3),
-        LeaderboardEntry.fromRaw(10, "user10", "Jack Anderson", 1775, 40, 170, 22, 42, 1)
+        LeaderboardEntry.fromRaw(1, "123e4567-e89b-12d3-a456-426614174001", "Alice Wonder", 1850, 45, 198, 23, 52, 0),
+        LeaderboardEntry.fromRaw(2, "123e4567-e89b-12d3-a456-426614174002", "Bob Smith", 1850, 45, 195, 28, 52, -1),
+        LeaderboardEntry.fromRaw(3, "123e4567-e89b-12d3-a456-426614174003", "Carol Jones", 1845, 44, 200, 20, 52, 2),
+        LeaderboardEntry.fromRaw(4, "123e4567-e89b-12d3-a456-426614174004", "Dave Brown", 1840, 50, 190, 15, 50, -1),
+        LeaderboardEntry.fromRaw(5, "123e4567-e89b-12d3-a456-426614174005", "Eve Davis", 1825, 42, 185, 31, 48, 1),
+        LeaderboardEntry.fromRaw(6, "123e4567-e89b-12d3-a456-426614174006", "Frank Miller", 1810, 38, 180, 29, 46, -2),
+        LeaderboardEntry.fromRaw(7, "123e4567-e89b-12d3-a456-426614174007", "Grace Wilson", 1805, 41, 178, 25, 45, 3),
+        LeaderboardEntry.fromRaw(8, "123e4567-e89b-12d3-a456-426614174008", "Henry Moore", 1795, 37, 175, 33, 44, 0),
+        LeaderboardEntry.fromRaw(9, "123e4567-e89b-12d3-a456-426614174009", "Ivy Taylor", 1780, 35, 172, 27, 42, -3),
+        LeaderboardEntry.fromRaw(10, "123e4567-e89b-12d3-a456-42661417400a", "Jack Anderson", 1775, 40, 170, 22, 42, 1)
     );
 
     // Current user stub data
     private static final LeaderboardEntry CURRENT_USER_POSITION = LeaderboardEntry.fromRaw(
-        45, "current-user", "Deejay Wagz", 1702, 156, 175, 15, 168, 3
+        45, "00000000-0000-0000-0000-000000000000", "Deejay Wagz", 1702, 156, 175, 15, 168, 3
     );
 
     @Override
@@ -60,8 +60,8 @@ public class InMemoryLeaderboardRepository implements LeaderboardRepository {
 
     @Override
     public Optional<LeaderboardEntry> findUserPosition(UserId userId, Phase phase) {
-        // Check if looking for current user
-        if ("current-user".equals(userId.value()) || "current-user-id".equals(userId.value())) {
+        // Check if looking for current user (demo user)
+        if ("00000000-0000-0000-0000-000000000000".equals(userId.value())) {
             return Optional.of(CURRENT_USER_POSITION);
         }
 
