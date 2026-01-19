@@ -131,7 +131,7 @@ public class RoundPredictionController {
             error -> new Responses.SwapStatusResponse(
                 "ERROR", false, null, null, 0.0, error.message()
             ),
-            viewMapper::toLegacyDTO
+            viewMapper::toSwapStatusResponse
         );
     }
 
@@ -158,7 +158,7 @@ public class RoundPredictionController {
             },
             swapResult -> {
                 List<Responses.PredictionRow> predictions =
-                    viewMapper.toLegacyDTOs(swapResult.predictions());
+                    viewMapper.toDTOs(swapResult.predictions());
                 model.addAttribute("predictions", predictions);
                 return "fragments/prediction-table";
             }
@@ -207,8 +207,8 @@ public class RoundPredictionController {
     }
 
     private String handlePredictionSuccess(PredictionViewData data, Model model, String hxRequest) {
-        // Convert domain predictions to legacy DTOs
-        List<Responses.PredictionRow> predictions = viewMapper.toLegacyDTOs(data.predictions());
+        // Convert domain predictions to DTOs
+        List<Responses.PredictionRow> predictions = viewMapper.toDTOs(data.predictions());
 
         model.addAttribute("pageTitle", "My Predictions");
         model.addAttribute("currentRound", data.currentRound());
@@ -224,7 +224,7 @@ public class RoundPredictionController {
         // Convert swap status if available
         if (data.swapCooldown() != null) {
             Responses.SwapStatusResponse swapStatus =
-                viewMapper.toLegacyDTO(data.swapCooldown(), data.roundState());
+                viewMapper.toSwapStatusResponse(data.swapCooldown(), data.roundState());
             model.addAttribute("swapStatus", swapStatus);
         } else {
             model.addAttribute("swapStatus", null);

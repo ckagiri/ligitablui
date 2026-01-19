@@ -4,15 +4,22 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ligitabl.api.shared.Either;
 import com.ligitabl.application.command.GetSeasonPredictionCommand;
+import com.ligitabl.application.command.SwapRoundTeamsCommand;
+import com.ligitabl.application.command.UpdatePredictionOrderCommand;
 import com.ligitabl.application.error.UseCaseError;
+import com.ligitabl.application.usecase.prediction.GetSwapStatusUseCase;
+import com.ligitabl.application.usecase.prediction.ResetDemoUseCase;
+import com.ligitabl.application.usecase.prediction.SwapRoundTeamsUseCase;
+import com.ligitabl.application.usecase.prediction.UpdatePredictionOrderUseCase;
 import com.ligitabl.application.usecase.seasonprediction.GetSeasonPredictionUseCase;
-import com.ligitabl.domain.model.prediction.SwapCooldown;
 import com.ligitabl.domain.model.season.SeasonId;
 import com.ligitabl.domain.model.seasonprediction.RankingSource;
 import com.ligitabl.domain.model.seasonprediction.TeamRanking;
 import com.ligitabl.domain.model.user.UserId;
+import com.ligitabl.dto.Responses;
 import com.ligitabl.presentation.dto.response.RankingDTO;
 import com.ligitabl.presentation.mapper.ErrorViewMapper;
+import com.ligitabl.presentation.mapper.PredictionViewMapper;
 import com.ligitabl.presentation.mapper.SeasonPredictionViewMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -20,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
 import java.util.List;
@@ -40,25 +48,62 @@ public class PredictionsController {
 
     private static final Logger log = LoggerFactory.getLogger(PredictionsController.class);
     private static final int CURRENT_ROUND = 19;  // TODO: Get from config or service
+    private static final String DEFAULT_USER_ID = "00000000-0000-0000-0000-000000000000";
 
     private final GetSeasonPredictionUseCase getSeasonPredictionUseCase;
+    private final GetSwapStatusUseCase getSwapStatusUseCase;
+    private final SwapRoundTeamsUseCase swapRoundTeamsUseCase;
+    private final UpdatePredictionOrderUseCase updatePredictionOrderUseCase;
+    private final ResetDemoUseCase resetDemoUseCase;
     private final SeasonPredictionViewMapper viewMapper;
+    private final PredictionViewMapper predictionViewMapper;
     private final ErrorViewMapper errorMapper;
     private final ObjectMapper objectMapper;
     private final SeasonId activeSeasonId;
 
     public PredictionsController(
         GetSeasonPredictionUseCase getSeasonPredictionUseCase,
+        GetSwapStatusUseCase getSwapStatusUseCase,
+        SwapRoundTeamsUseCase swapRoundTeamsUseCase,
+        UpdatePredictionOrderUseCase updatePredictionOrderUseCase,
+        ResetDemoUseCase resetDemoUseCase,
         SeasonPredictionViewMapper viewMapper,
+        PredictionViewMapper predictionViewMapper,
         ErrorViewMapper errorMapper,
         ObjectMapper objectMapper,
         SeasonId activeSeasonId
     ) {
         this.getSeasonPredictionUseCase = getSeasonPredictionUseCase;
+        this.getSwapStatusUseCase = getSwapStatusUseCase;
+        this.swapRoundTeamsUseCase = swapRoundTeamsUseCase;
+        this.updatePredictionOrderUseCase = updatePredictionOrderUseCase;
+        this.resetDemoUseCase = resetDemoUseCase;
         this.viewMapper = viewMapper;
+        this.predictionViewMapper = predictionViewMapper;
         this.errorMapper = errorMapper;
         this.objectMapper = objectMapper;
         this.activeSeasonId = activeSeasonId;
+    }
+
+    /**
+     * GET /predictions2/demo-reset - Reset demo state and redirect to predictions page.
+     */
+    @GetMapping("/demo-reset")
+    public String resetDemo(RedirectAttributes redirectAttributes) {
+        Either<UseCaseError, ResetDemoUseCase.ResetResult> result = resetDemoUseCase.execute();
+
+        return result.fold(
+            error -> {
+                redirectAttributes.addFlashAttribute("message", error.message());
+                redirectAttributes.addFlashAttribute("messageType", "error");
+                return "redirect:/predictions2/me";
+            },
+            success -> {
+                redirectAttributes.addFlashAttribute("message", success.message());
+                redirectAttributes.addFlashAttribute("messageType", "success");
+                return "redirect:/predictions2/me";
+            }
+        );
     }
 
     /**
@@ -106,6 +151,78 @@ public class PredictionsController {
         );
     }
 
+    /**
+     * GET /predictions2/me/swap-status - Get swap status as JSON.
+     */
+    @GetMapping("/me/swap-status")
+    @ResponseBody
+    public Responses.SwapStatusResponse getSwapStatus() {
+        UserId userId = UserId.of(DEFAULT_USER_ID);
+
+        Either<UseCaseError, GetSwapStatusUseCase.SwapStatusResult> result =
+            getSwapStatusUseCase.execute(userId);
+
+        return result.fold(
+            error -> new Responses.SwapStatusResponse(
+                "ERROR", false, null, null, 0.0, error.message()
+            ),
+            predictionViewMapper::toSwapStatusResponse
+        );
+    }
+
+    /**
+     * POST /predictions2/swap - Swap two teams in prediction.
+     */
+    @PostMapping("/swap")
+    public String makeSwap(
+        @RequestParam String teamA,
+        @RequestParam String teamB,
+        Model model,
+        HttpServletResponse response
+    ) {
+        SwapRoundTeamsCommand command = SwapRoundTeamsCommand.of(DEFAULT_USER_ID, teamA, teamB);
+
+        Either<UseCaseError, SwapRoundTeamsUseCase.SwapResult> result =
+            swapRoundTeamsUseCase.execute(command);
+
+        return result.fold(
+            error -> {
+                response.setStatus(mapErrorToStatus(error));
+                model.addAttribute("error", errorMapper.toResponse(error));
+                return "fragments/error-banner :: banner";
+            },
+            swapResult -> {
+                List<Responses.PredictionRow> predictions =
+                    predictionViewMapper.toDTOs(swapResult.predictions());
+                model.addAttribute("predictions", predictions);
+                return "fragments/prediction-table";
+            }
+        );
+    }
+
+    /**
+     * POST /predictions2/swap-multiple - Update full prediction order (multiple swaps in one request).
+     */
+    @PostMapping("/swap-multiple")
+    @ResponseBody
+    public java.util.Map<String, Object> makeMultipleSwaps(@RequestBody java.util.Map<String, List<String>> request) {
+        List<String> teamCodes = request.get("teamCodes");
+        UserId userId = UserId.of(DEFAULT_USER_ID);
+
+        UpdatePredictionOrderCommand command = UpdatePredictionOrderCommand.of(
+            userId.value(),
+            teamCodes
+        );
+
+        Either<UseCaseError, UpdatePredictionOrderUseCase.UpdateResult> result =
+            updatePredictionOrderUseCase.execute(command);
+
+        return result.fold(
+            error -> java.util.Map.of("success", false, "message", error.message()),
+            success -> java.util.Map.of("success", true, "message", success.message())
+        );
+    }
+
     // --- Private Helper Methods ---
 
     private String handleError(
@@ -150,9 +267,9 @@ public class PredictionsController {
 
         // Convert swap status if available (matching RoundPredictionController logic)
         if (data.swapCooldown() != null) {
-            // For now, we'll set a simplified swap status
-            // TODO: Create proper SwapStatusResponse DTO like RoundPredictionController
-            model.addAttribute("swapStatus", createSwapStatusResponse(data.swapCooldown(), data.roundState()));
+            Responses.SwapStatusResponse swapStatus =
+                predictionViewMapper.toSwapStatusResponse(data.swapCooldown(), data.roundState());
+            model.addAttribute("swapStatus", swapStatus);
         } else {
             model.addAttribute("swapStatus", null);
         }
@@ -176,24 +293,6 @@ public class PredictionsController {
             return "predictions2/me :: predictionPage";
         }
         return "predictions2/me";
-    }
-
-    /**
-     * Create a simple swap status response object.
-     * TODO: Use proper mapper like RoundPredictionController does.
-     */
-    private Object createSwapStatusResponse(SwapCooldown swapCooldown, String roundState) {
-        // For now, create a simple map
-        // In a real implementation, we'd use the PredictionViewMapper
-        return new java.util.HashMap<String, Object>() {{
-            put("canSwap", swapCooldown.canSwap(java.time.Instant.now()));
-            put("message", swapCooldown.canSwap(java.time.Instant.now())
-                ? "Ready to swap"
-                : "Cooldown active. Next change available soon.");
-            put("lastSwapAt", swapCooldown.lastSwapAt() != null
-                ? swapCooldown.lastSwapAt().toString()
-                : "Never");
-        }};
     }
 
     private int mapErrorToStatus(UseCaseError error) {

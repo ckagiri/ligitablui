@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Maps prediction domain models to legacy DTOs for Thymeleaf template compatibility.
+ * Maps prediction domain models to DTOs for Thymeleaf template compatibility.
  */
 @Component
 public class PredictionViewMapper {
@@ -41,9 +41,9 @@ public class PredictionViewMapper {
     );
 
     /**
-     * Convert domain PredictionRow to legacy DTO.
+     * Convert domain PredictionRow to DTO.
      */
-    public Responses.PredictionRow toLegacyDTO(PredictionRow row) {
+    public Responses.PredictionRow toDTO(PredictionRow row) {
         return new Responses.PredictionRow(
             row.getPosition(),
             row.getTeamCode(),
@@ -55,18 +55,18 @@ public class PredictionViewMapper {
     }
 
     /**
-     * Convert list of domain PredictionRows to legacy DTOs.
+     * Convert list of domain PredictionRows to DTOs.
      */
-    public List<Responses.PredictionRow> toLegacyDTOs(List<PredictionRow> rows) {
+    public List<Responses.PredictionRow> toDTOs(List<PredictionRow> rows) {
         return rows.stream()
-            .map(this::toLegacyDTO)
+            .map(this::toDTO)
             .toList();
     }
 
     /**
-     * Convert SwapStatusResult to legacy DTO.
+     * Convert SwapStatusResult to SwapStatusResponse DTO.
      */
-    public Responses.SwapStatusResponse toLegacyDTO(SwapStatusResult status) {
+    public Responses.SwapStatusResponse toSwapStatusResponse(SwapStatusResult status) {
         return new Responses.SwapStatusResponse(
             status.roundStatus(),
             status.canSwap(),
@@ -78,9 +78,9 @@ public class PredictionViewMapper {
     }
 
     /**
-     * Convert SwapCooldown to legacy SwapStatusResponse.
+     * Convert SwapCooldown to SwapStatusResponse DTO.
      */
-    public Responses.SwapStatusResponse toLegacyDTO(SwapCooldown cooldown, String roundStatus) {
+    public Responses.SwapStatusResponse toSwapStatusResponse(SwapCooldown cooldown, String roundStatus) {
         Instant now = Instant.now();
         return new Responses.SwapStatusResponse(
             roundStatus,
