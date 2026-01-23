@@ -3,21 +3,21 @@ package com.ligitabl.application.usecase.seasonprediction;
 import com.ligitabl.api.shared.Either;
 import com.ligitabl.application.command.GetSeasonPredictionCommand;
 import com.ligitabl.application.error.UseCaseError;
+import com.ligitabl.domain.model.prediction.SwapCooldown;
 import com.ligitabl.domain.model.season.SeasonId;
 import com.ligitabl.domain.model.seasonprediction.RankingSource;
 import com.ligitabl.domain.model.seasonprediction.SeasonPrediction;
-import com.ligitabl.domain.model.seasonprediction.SeasonPredictionId;
 import com.ligitabl.domain.model.seasonprediction.TeamRanking;
 import com.ligitabl.domain.model.team.TeamId;
 import com.ligitabl.domain.model.user.UserId;
-import com.ligitabl.domain.repository.RoundStandingsRepository;
-import com.ligitabl.domain.repository.SeasonPredictionRepository;
-import com.ligitabl.domain.repository.SeasonTeamRankingsRepository;
+import com.ligitabl.domain.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,6 +33,9 @@ class GetSeasonPredictionUseCaseTest {
     private SeasonPredictionRepository seasonPredictionRepository;
     private RoundStandingsRepository roundStandingsRepository;
     private SeasonTeamRankingsRepository seasonTeamRankingsRepository;
+    private RoundPredictionRepository roundPredictionRepository;
+    private FixtureRepository fixtureRepository;
+    private StandingRepository standingRepository;
     private GetSeasonPredictionUseCase useCase;
 
     private final UserId userId = UserId.generate();
@@ -43,11 +46,26 @@ class GetSeasonPredictionUseCaseTest {
         seasonPredictionRepository = mock(SeasonPredictionRepository.class);
         roundStandingsRepository = mock(RoundStandingsRepository.class);
         seasonTeamRankingsRepository = mock(SeasonTeamRankingsRepository.class);
+        roundPredictionRepository = mock(RoundPredictionRepository.class);
+        fixtureRepository = mock(FixtureRepository.class);
+        standingRepository = mock(StandingRepository.class);
+
+        // Default mock behavior for additional repositories
+        when(roundPredictionRepository.getCurrentRound()).thenReturn(19);
+        when(roundPredictionRepository.getSwapCooldown(any())).thenReturn(
+            new SwapCooldown(Instant.now().minusSeconds(3600), true, 1, true)
+        );
+        when(fixtureRepository.findByRound(any())).thenReturn(Map.of());
+        when(standingRepository.findCurrentPositionMap()).thenReturn(Map.of());
+        when(standingRepository.findCurrentPointsMap()).thenReturn(Map.of());
 
         useCase = new GetSeasonPredictionUseCase(
             seasonPredictionRepository,
             roundStandingsRepository,
-            seasonTeamRankingsRepository
+            seasonTeamRankingsRepository,
+            roundPredictionRepository,
+            fixtureRepository,
+            standingRepository
         );
     }
 
@@ -60,18 +78,18 @@ class GetSeasonPredictionUseCaseTest {
         when(seasonPredictionRepository.findByUserIdAndSeasonId(userId, seasonId))
             .thenReturn(Optional.of(userPrediction));
 
-        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.of(userId, seasonId);
+        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.forSeason(userId, seasonId);
 
         // When
-        Either<UseCaseError, GetSeasonPredictionUseCase.RankingsWithSource> result =
+        Either<UseCaseError, GetSeasonPredictionUseCase.PredictionViewData> result =
             useCase.execute(command);
 
         // Then
         assertTrue(result.isRight(), "Should succeed");
-        GetSeasonPredictionUseCase.RankingsWithSource rankings = result.get();
+        GetSeasonPredictionUseCase.PredictionViewData viewData = result.get();
 
-        assertEquals(RankingSource.USER_PREDICTION, rankings.source());
-        assertEquals(20, rankings.rankings().size());
+        assertEquals(RankingSource.USER_PREDICTION, viewData.source());
+        assertEquals(20, viewData.rankings().size());
 
         // Verify fallbacks were NOT called
         verifyNoInteractions(roundStandingsRepository);
@@ -88,18 +106,18 @@ class GetSeasonPredictionUseCaseTest {
         when(roundStandingsRepository.findLatestBySeasonId(seasonId))
             .thenReturn(Optional.of(roundRankings));
 
-        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.of(userId, seasonId);
+        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.forSeason(userId, seasonId);
 
         // When
-        Either<UseCaseError, GetSeasonPredictionUseCase.RankingsWithSource> result =
+        Either<UseCaseError, GetSeasonPredictionUseCase.PredictionViewData> result =
             useCase.execute(command);
 
         // Then
         assertTrue(result.isRight(), "Should succeed");
-        GetSeasonPredictionUseCase.RankingsWithSource rankings = result.get();
+        GetSeasonPredictionUseCase.PredictionViewData viewData = result.get();
 
-        assertEquals(RankingSource.ROUND_STANDINGS, rankings.source());
-        assertEquals(20, rankings.rankings().size());
+        assertEquals(RankingSource.ROUND_STANDINGS, viewData.source());
+        assertEquals(20, viewData.rankings().size());
 
         // Verify baseline was NOT called (round standings found)
         verifyNoInteractions(seasonTeamRankingsRepository);
@@ -117,18 +135,18 @@ class GetSeasonPredictionUseCaseTest {
         when(seasonTeamRankingsRepository.findBySeasonId(seasonId))
             .thenReturn(Optional.of(baselineRankings));
 
-        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.of(userId, seasonId);
+        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.forSeason(userId, seasonId);
 
         // When
-        Either<UseCaseError, GetSeasonPredictionUseCase.RankingsWithSource> result =
+        Either<UseCaseError, GetSeasonPredictionUseCase.PredictionViewData> result =
             useCase.execute(command);
 
         // Then
         assertTrue(result.isRight(), "Should succeed");
-        GetSeasonPredictionUseCase.RankingsWithSource rankings = result.get();
+        GetSeasonPredictionUseCase.PredictionViewData viewData = result.get();
 
-        assertEquals(RankingSource.SEASON_BASELINE, rankings.source());
-        assertEquals(20, rankings.rankings().size());
+        assertEquals(RankingSource.SEASON_BASELINE, viewData.source());
+        assertEquals(20, viewData.rankings().size());
     }
 
     @Test
@@ -143,18 +161,18 @@ class GetSeasonPredictionUseCaseTest {
         when(seasonTeamRankingsRepository.findBySeasonId(seasonId))
             .thenReturn(Optional.of(baselineRankings));
 
-        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.of(userId, seasonId);
+        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.forSeason(userId, seasonId);
 
         // When
-        Either<UseCaseError, GetSeasonPredictionUseCase.RankingsWithSource> result =
+        Either<UseCaseError, GetSeasonPredictionUseCase.PredictionViewData> result =
             useCase.execute(command);
 
         // Then
         assertTrue(result.isRight(), "Should succeed");
-        GetSeasonPredictionUseCase.RankingsWithSource rankings = result.get();
+        GetSeasonPredictionUseCase.PredictionViewData viewData = result.get();
 
-        assertEquals(RankingSource.SEASON_BASELINE, rankings.source());
-        assertEquals(20, rankings.rankings().size());
+        assertEquals(RankingSource.SEASON_BASELINE, viewData.source());
+        assertEquals(20, viewData.rankings().size());
     }
 
     @Test
@@ -167,10 +185,10 @@ class GetSeasonPredictionUseCaseTest {
         when(seasonTeamRankingsRepository.findBySeasonId(seasonId))
             .thenReturn(Optional.empty());
 
-        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.of(userId, seasonId);
+        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.forSeason(userId, seasonId);
 
         // When
-        Either<UseCaseError, GetSeasonPredictionUseCase.RankingsWithSource> result =
+        Either<UseCaseError, GetSeasonPredictionUseCase.PredictionViewData> result =
             useCase.execute(command);
 
         // Then
@@ -190,10 +208,10 @@ class GetSeasonPredictionUseCaseTest {
         when(seasonPredictionRepository.findByUserIdAndSeasonId(userId, seasonId))
             .thenThrow(new RuntimeException("Database error"));
 
-        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.of(userId, seasonId);
+        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.forSeason(userId, seasonId);
 
         // When
-        Either<UseCaseError, GetSeasonPredictionUseCase.RankingsWithSource> result =
+        Either<UseCaseError, GetSeasonPredictionUseCase.PredictionViewData> result =
             useCase.execute(command);
 
         // Then
@@ -208,13 +226,40 @@ class GetSeasonPredictionUseCaseTest {
     void shouldThrowNullPointerExceptionForNullRepositories() {
         // When/Then
         assertThrows(NullPointerException.class, () ->
-            new GetSeasonPredictionUseCase(null, roundStandingsRepository, seasonTeamRankingsRepository)
+            new GetSeasonPredictionUseCase(
+                null, roundStandingsRepository, seasonTeamRankingsRepository,
+                roundPredictionRepository, fixtureRepository, standingRepository
+            )
         );
         assertThrows(NullPointerException.class, () ->
-            new GetSeasonPredictionUseCase(seasonPredictionRepository, null, seasonTeamRankingsRepository)
+            new GetSeasonPredictionUseCase(
+                seasonPredictionRepository, null, seasonTeamRankingsRepository,
+                roundPredictionRepository, fixtureRepository, standingRepository
+            )
         );
         assertThrows(NullPointerException.class, () ->
-            new GetSeasonPredictionUseCase(seasonPredictionRepository, roundStandingsRepository, null)
+            new GetSeasonPredictionUseCase(
+                seasonPredictionRepository, roundStandingsRepository, null,
+                roundPredictionRepository, fixtureRepository, standingRepository
+            )
+        );
+        assertThrows(NullPointerException.class, () ->
+            new GetSeasonPredictionUseCase(
+                seasonPredictionRepository, roundStandingsRepository, seasonTeamRankingsRepository,
+                null, fixtureRepository, standingRepository
+            )
+        );
+        assertThrows(NullPointerException.class, () ->
+            new GetSeasonPredictionUseCase(
+                seasonPredictionRepository, roundStandingsRepository, seasonTeamRankingsRepository,
+                roundPredictionRepository, null, standingRepository
+            )
+        );
+        assertThrows(NullPointerException.class, () ->
+            new GetSeasonPredictionUseCase(
+                seasonPredictionRepository, roundStandingsRepository, seasonTeamRankingsRepository,
+                roundPredictionRepository, fixtureRepository, null
+            )
         );
     }
 
@@ -227,10 +272,10 @@ class GetSeasonPredictionUseCaseTest {
         when(seasonPredictionRepository.findByUserIdAndSeasonId(userId, seasonId))
             .thenReturn(Optional.of(userPrediction));
 
-        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.of(userId, seasonId);
+        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.forSeason(userId, seasonId);
 
         // When
-        Either<UseCaseError, GetSeasonPredictionUseCase.RankingsWithSource> result =
+        Either<UseCaseError, GetSeasonPredictionUseCase.PredictionViewData> result =
             useCase.execute(command);
 
         // Then
@@ -241,6 +286,56 @@ class GetSeasonPredictionUseCaseTest {
         assertThrows(UnsupportedOperationException.class, () ->
             rankings.add(TeamRanking.create(TeamId.generate(), 1))
         );
+    }
+
+    @Test
+    void shouldReturnCorrectViewDataForCurrentRound() {
+        // Given: User has prediction, viewing current round
+        List<TeamRanking> userRankings = create20Rankings();
+        SeasonPrediction userPrediction = createMockPrediction(userRankings);
+
+        when(seasonPredictionRepository.findByUserIdAndSeasonId(userId, seasonId))
+            .thenReturn(Optional.of(userPrediction));
+
+        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.forSeason(userId, seasonId);
+
+        // When
+        Either<UseCaseError, GetSeasonPredictionUseCase.PredictionViewData> result =
+            useCase.execute(command);
+
+        // Then
+        assertTrue(result.isRight());
+        GetSeasonPredictionUseCase.PredictionViewData viewData = result.get();
+
+        assertEquals(19, viewData.currentRound());
+        assertEquals(19, viewData.viewingRound());
+        assertTrue(viewData.isCurrentRound());
+        assertEquals("OPEN", viewData.roundState());
+    }
+
+    @Test
+    void shouldReturnCorrectViewDataForHistoricalRound() {
+        // Given: User has prediction, viewing historical round
+        List<TeamRanking> userRankings = create20Rankings();
+        SeasonPrediction userPrediction = createMockPrediction(userRankings);
+
+        when(seasonPredictionRepository.findByUserIdAndSeasonId(userId, seasonId))
+            .thenReturn(Optional.of(userPrediction));
+
+        GetSeasonPredictionCommand command = GetSeasonPredictionCommand.forRound(userId, seasonId, 15);
+
+        // When
+        Either<UseCaseError, GetSeasonPredictionUseCase.PredictionViewData> result =
+            useCase.execute(command);
+
+        // Then
+        assertTrue(result.isRight());
+        GetSeasonPredictionUseCase.PredictionViewData viewData = result.get();
+
+        assertEquals(19, viewData.currentRound());
+        assertEquals(15, viewData.viewingRound());
+        assertFalse(viewData.isCurrentRound());
+        assertEquals("COMPLETED", viewData.roundState());
     }
 
     // Helper methods

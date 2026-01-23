@@ -77,16 +77,14 @@ class TeamIdTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"not-a-uuid", "12345", "abc-def-ghi", "123e4567"})
-    void shouldThrowExceptionForInvalidUUID(String invalidUuid) {
-        // When/Then
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
-            () -> new TeamId(invalidUuid)
-        );
+    @ValueSource(strings = {"team-mci-000000000001", "team-ars-000000000002", "custom-id-format"})
+    void shouldAcceptFlexibleIdFormats(String flexibleId) {
+        // TeamId accepts flexible formats, not just strict UUIDs
+        // This supports team-{code}-{uuid} format used in the system
+        TeamId teamId = new TeamId(flexibleId);
 
-        assertTrue(exception.getMessage().contains("TeamId must be a valid UUID"));
-        assertTrue(exception.getMessage().contains(invalidUuid));
+        assertNotNull(teamId);
+        assertEquals(flexibleId, teamId.value());
     }
 
     @Test
