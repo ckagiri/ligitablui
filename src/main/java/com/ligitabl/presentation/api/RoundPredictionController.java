@@ -31,7 +31,15 @@ import java.util.Map;
 /**
  * Controller for round prediction endpoints.
  * Migrated from PlayerController to use Clean Architecture patterns.
+ *
+ * @deprecated Use {@link UserPredictionsController} at /predictions/user/* instead.
+ *             This controller will be removed in a future version.
+ *             Migration:
+ *             - /predictions/me → /predictions/user/me
+ *             - /predictions/swap → (use swap endpoints from new controller)
+ *             - /predictions/demo-reset → (use new demo reset endpoint)
  */
+@Deprecated(since = "2026-01-23", forRemoval = true)
 @Controller
 public class RoundPredictionController {
 

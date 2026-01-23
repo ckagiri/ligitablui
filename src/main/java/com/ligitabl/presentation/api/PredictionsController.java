@@ -41,7 +41,15 @@ import java.util.List;
  * - Historical round viewing (shows past round results, read-only)
  * - Guest users (shows baseline/fallback rankings)
  * - Authenticated users (shows their predictions)</p>
+ *
+ * @deprecated Use {@link UserPredictionsController} at /predictions/user/* instead.
+ *             This experimental controller (/predictions2) will be removed in a future version.
+ *             Migration:
+ *             - /predictions2/me → /predictions/user/me
+ *             - /predictions2/swap → (use swap endpoints from new controller)
+ *             - /predictions2/demo-reset → (use new demo reset endpoint)
  */
+@Deprecated(since = "2026-01-23", forRemoval = true)
 @Controller
 @RequestMapping("/predictions2")  // Use /predictions2 initially, switch to /predictions once stable
 public class PredictionsController {
