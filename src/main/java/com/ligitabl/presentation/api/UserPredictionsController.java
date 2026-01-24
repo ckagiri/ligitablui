@@ -10,6 +10,7 @@ import com.ligitabl.domain.model.contest.ContestId;
 import com.ligitabl.domain.model.season.SeasonId;
 import com.ligitabl.domain.model.user.UserId;
 import com.ligitabl.domain.repository.MainContestEntryRepository;
+import com.ligitabl.domain.repository.RoundPredictionRepository;
 import com.ligitabl.domain.repository.SeasonPredictionRepository;
 import com.ligitabl.presentation.dto.response.RankingDTO;
 import com.ligitabl.presentation.mapper.ErrorViewMapper;
@@ -29,14 +30,14 @@ import java.util.List;
  *
  * <p>Provides endpoints:
  * <ul>
- *   <li><b>GET /predictions/user/me</b> - Current user's predictions (or fallback for guests)</li>
- *   <li><b>GET /predictions/user/guest</b> - Explicit guest view (always fallback, readonly)</li>
+ *   <li><b>GET /predictions/user/me</b> - Current user's predictions (redirects to /guest if not logged in)</li>
+ *   <li><b>GET /predictions/user/guest</b> - Guest view with localStorage swaps (always fallback, readonly)</li>
  *   <li><b>GET /predictions/user/{userId}</b> - View specific user's predictions</li>
  * </ul>
  *
  * <p>User resolution:
  * <ul>
- *   <li><b>/me</b> with no Principal → Guest (READONLY_GUEST)</li>
+ *   <li><b>/me</b> with no Principal → Redirects to /predictions/user/guest</li>
  *   <li><b>/me</b> with Principal + prediction → Own prediction (EDITABLE or READONLY_COOLDOWN)</li>
  *   <li><b>/me</b> with Principal + no prediction → Fallback (CAN_CREATE_ENTRY)</li>
  *   <li><b>/{userId}</b> matching own ID → Same as /me</li>
@@ -52,6 +53,7 @@ public class UserPredictionsController {
 
     private final GetUserPredictionUseCase getUserPredictionUseCase;
     private final SeasonPredictionRepository seasonPredictionRepository;
+    private final RoundPredictionRepository roundPredictionRepository;
     private final MainContestEntryRepository mainContestEntryRepository;
     private final SeasonPredictionViewMapper viewMapper;
     private final ErrorViewMapper errorMapper;
@@ -62,6 +64,7 @@ public class UserPredictionsController {
     public UserPredictionsController(
         GetUserPredictionUseCase getUserPredictionUseCase,
         SeasonPredictionRepository seasonPredictionRepository,
+        RoundPredictionRepository roundPredictionRepository,
         MainContestEntryRepository mainContestEntryRepository,
         SeasonPredictionViewMapper viewMapper,
         ErrorViewMapper errorMapper,
@@ -71,6 +74,7 @@ public class UserPredictionsController {
     ) {
         this.getUserPredictionUseCase = getUserPredictionUseCase;
         this.seasonPredictionRepository = seasonPredictionRepository;
+        this.roundPredictionRepository = roundPredictionRepository;
         this.mainContestEntryRepository = mainContestEntryRepository;
         this.viewMapper = viewMapper;
         this.errorMapper = errorMapper;
@@ -84,7 +88,7 @@ public class UserPredictionsController {
      *
      * <p>Resolves user from Principal:
      * <ul>
-     *   <li>Not logged in → Returns fallback as READONLY_GUEST</li>
+     *   <li>Not logged in → Redirects to /predictions/user/guest</li>
      *   <li>Logged in + has prediction → Returns user's prediction (EDITABLE or READONLY_COOLDOWN)</li>
      *   <li>Logged in + no prediction → Returns fallback as CAN_CREATE_ENTRY</li>
      * </ul>
@@ -99,6 +103,15 @@ public class UserPredictionsController {
     ) {
         log.info("GET /predictions/user/me - round: {}, user: {}",
             round, principal != null ? principal.getName() : "guest");
+
+        // Redirect guests to /guest endpoint - /me implies "my account"
+        if (principal == null) {
+            String redirect = "redirect:/predictions/user/guest";
+            if (round != null) {
+                redirect += "?round=" + round;
+            }
+            return redirect;
+        }
 
         GetUserPredictionCommand command = buildCommandForMe(principal, round);
 
@@ -186,7 +199,12 @@ public class UserPredictionsController {
 
         UserId userId = UserId.of(principal.getName());
         boolean hasEntry = mainContestEntryRepository.existsByUserIdAndContestId(userId, mainContestId);
-        boolean hasPrediction = seasonPredictionRepository.existsByUserIdAndSeasonId(userId, activeSeasonId);
+
+        // Check both season prediction and round prediction
+        // User has prediction if they made either a season prediction OR an initial round prediction
+        boolean hasSeasonPrediction = seasonPredictionRepository.existsByUserIdAndSeasonId(userId, activeSeasonId);
+        boolean hasRoundPrediction = roundPredictionRepository.hasInitialPrediction(userId);
+        boolean hasPrediction = hasSeasonPrediction || hasRoundPrediction;
 
         return GetUserPredictionCommand.forAuthenticatedUser(
             userId, activeSeasonId, hasEntry, hasPrediction, round
@@ -288,6 +306,19 @@ public class UserPredictionsController {
         model.addAttribute("message", data.message());
         model.addAttribute("targetDisplayName", data.targetDisplayName());
 
+        // Swap status for cooldown banners
+        if (data.swapCooldown() != null) {
+            var cooldown = data.swapCooldown();
+            var now = java.time.Instant.now();
+            model.addAttribute("swapStatus", new SwapStatusDTO(
+                cooldown.canSwap(now),
+                cooldown.getStatusMessage(now),
+                cooldown.getLastSwapAtFormatted(),
+                cooldown.initialPredictionMade(),
+                cooldown.swapCount()
+            ));
+        }
+
         // Source information
         model.addAttribute("source", data.source().name());
         model.addAttribute("sourceLabel", getSourceLabel(data));
@@ -349,5 +380,23 @@ public class UserPredictionsController {
             case CONFLICT -> 409;
             case BUSINESS_RULE -> 422;
         };
+    }
+
+    /**
+     * DTO for swap status information displayed in templates.
+     */
+    public record SwapStatusDTO(
+        boolean canSwap,
+        String message,
+        String lastSwapAt,
+        boolean initialPredictionMade,
+        int swapCount
+    ) {
+        /**
+         * Check if this is the first swap bonus (can swap without cooldown).
+         */
+        public boolean isFirstSwapBonus() {
+            return initialPredictionMade && swapCount == 0 && canSwap;
+        }
     }
 }

@@ -12,6 +12,7 @@ import com.ligitabl.domain.model.seasonprediction.TeamRanking;
 import com.ligitabl.domain.model.team.TeamId;
 import com.ligitabl.domain.model.user.UserId;
 import com.ligitabl.domain.repository.MainContestEntryRepository;
+import com.ligitabl.domain.repository.RoundPredictionRepository;
 import com.ligitabl.domain.repository.SeasonPredictionRepository;
 import com.ligitabl.presentation.mapper.ErrorViewMapper;
 import com.ligitabl.presentation.mapper.SeasonPredictionViewMapper;
@@ -40,6 +41,7 @@ class UserPredictionsControllerTest {
 
     private GetUserPredictionUseCase getUserPredictionUseCase;
     private SeasonPredictionRepository seasonPredictionRepository;
+    private RoundPredictionRepository roundPredictionRepository;
     private MainContestEntryRepository mainContestEntryRepository;
     private SeasonPredictionViewMapper viewMapper;
     private ErrorViewMapper errorMapper;
@@ -52,6 +54,7 @@ class UserPredictionsControllerTest {
     void setUp() {
         getUserPredictionUseCase = mock(GetUserPredictionUseCase.class);
         seasonPredictionRepository = mock(SeasonPredictionRepository.class);
+        roundPredictionRepository = mock(RoundPredictionRepository.class);
         mainContestEntryRepository = mock(MainContestEntryRepository.class);
         viewMapper = mock(SeasonPredictionViewMapper.class);
         errorMapper = mock(ErrorViewMapper.class);
@@ -62,6 +65,7 @@ class UserPredictionsControllerTest {
         controller = new UserPredictionsController(
             getUserPredictionUseCase,
             seasonPredictionRepository,
+            roundPredictionRepository,
             mainContestEntryRepository,
             viewMapper,
             errorMapper,
@@ -76,16 +80,9 @@ class UserPredictionsControllerTest {
     class MyPredictionsTests {
 
         @Test
-        @DisplayName("Should return guest view when not authenticated")
-        void shouldReturnGuestViewWhenNotAuthenticated() {
-            // Given
-            GetUserPredictionUseCase.UserPredictionViewData viewData = createViewData(
-                PredictionAccessMode.READONLY_GUEST,
-                RankingSource.ROUND_STANDINGS
-            );
-            when(getUserPredictionUseCase.execute(any()))
-                .thenReturn(Either.right(viewData));
-            when(viewMapper.toRankingDTO(any())).thenReturn(mock(com.ligitabl.presentation.dto.response.RankingDTO.class));
+        @DisplayName("Should redirect to guest view when not authenticated")
+        void shouldRedirectToGuestWhenNotAuthenticated() {
+            // Given - no setup needed, redirect happens before use case call
 
             Model model = new ExtendedModelMap();
             MockHttpServletResponse response = new MockHttpServletResponse();
@@ -93,12 +90,24 @@ class UserPredictionsControllerTest {
             // When
             String viewName = controller.myPredictions(null, null, model, response, null);
 
-            // Then
-            assertEquals("predictions/user/me", viewName);
-            assertEquals(PredictionAccessMode.READONLY_GUEST.name(), model.getAttribute("accessMode"));
-            assertTrue((Boolean) model.getAttribute("isGuest"));
-            assertTrue((Boolean) model.getAttribute("isReadonly"));
-            assertFalse((Boolean) model.getAttribute("canSwap"));
+            // Then - should redirect to /guest endpoint
+            assertEquals("redirect:/predictions/user/guest", viewName);
+            // Use case should not be called
+            verify(getUserPredictionUseCase, never()).execute(any());
+        }
+
+        @Test
+        @DisplayName("Should redirect to guest with round param when not authenticated")
+        void shouldRedirectToGuestWithRoundParamWhenNotAuthenticated() {
+            // Given
+            Model model = new ExtendedModelMap();
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            // When
+            String viewName = controller.myPredictions(15, null, model, response, null);
+
+            // Then - should redirect to /guest endpoint with round param
+            assertEquals("redirect:/predictions/user/guest?round=15", viewName);
         }
 
         @Test
@@ -164,12 +173,18 @@ class UserPredictionsControllerTest {
         }
 
         @Test
-        @DisplayName("Should return HTMX fragment when HX-Request header present")
-        void shouldReturnHtmxFragmentWhenHxRequestHeaderPresent() {
+        @DisplayName("Should return HTMX fragment when HX-Request header present for authenticated user")
+        void shouldReturnHtmxFragmentWhenHxRequestHeaderPresentForAuthenticatedUser() {
             // Given
+            UserId userId = UserId.generate();
+            Principal principal = () -> userId.value().toString();
+
+            when(mainContestEntryRepository.existsByUserIdAndContestId(any(), any())).thenReturn(true);
+            when(seasonPredictionRepository.existsByUserIdAndSeasonId(any(), any())).thenReturn(true);
+
             GetUserPredictionUseCase.UserPredictionViewData viewData = createViewData(
-                PredictionAccessMode.READONLY_GUEST,
-                RankingSource.ROUND_STANDINGS
+                PredictionAccessMode.EDITABLE,
+                RankingSource.USER_PREDICTION
             );
             when(getUserPredictionUseCase.execute(any()))
                 .thenReturn(Either.right(viewData));
@@ -179,10 +194,25 @@ class UserPredictionsControllerTest {
             MockHttpServletResponse response = new MockHttpServletResponse();
 
             // When
-            String viewName = controller.myPredictions(null, null, model, response, "true");
+            String viewName = controller.myPredictions(null, principal, model, response, "true");
 
             // Then
             assertEquals("predictions/user/me :: predictionPage", viewName);
+        }
+
+        @Test
+        @DisplayName("Should still redirect guest even with HTMX header")
+        void shouldStillRedirectGuestWithHtmxHeader() {
+            // Given - no authentication
+
+            Model model = new ExtendedModelMap();
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            // When
+            String viewName = controller.myPredictions(null, null, model, response, "true");
+
+            // Then - should still redirect (HTMX will follow redirect)
+            assertEquals("redirect:/predictions/user/guest", viewName);
         }
     }
 
@@ -312,9 +342,15 @@ class UserPredictionsControllerTest {
     class ErrorHandlingTests {
 
         @Test
-        @DisplayName("Should return error view on use case failure")
+        @DisplayName("Should return error view on use case failure for authenticated user")
         void shouldReturnErrorViewOnUseCaseFailure() {
             // Given
+            UserId userId = UserId.generate();
+            Principal principal = () -> userId.value().toString();
+
+            when(mainContestEntryRepository.existsByUserIdAndContestId(any(), any())).thenReturn(true);
+            when(seasonPredictionRepository.existsByUserIdAndSeasonId(any(), any())).thenReturn(true);
+
             UseCaseError error = new UseCaseError.NotFoundError("Prediction not found");
             when(getUserPredictionUseCase.execute(any()))
                 .thenReturn(Either.left(error));
@@ -326,7 +362,7 @@ class UserPredictionsControllerTest {
             MockHttpServletResponse response = new MockHttpServletResponse();
 
             // When
-            String viewName = controller.myPredictions(null, null, model, response, null);
+            String viewName = controller.myPredictions(null, principal, model, response, null);
 
             // Then
             assertEquals("error", viewName);
@@ -335,9 +371,15 @@ class UserPredictionsControllerTest {
         }
 
         @Test
-        @DisplayName("Should return error fragment for HTMX request on failure")
+        @DisplayName("Should return error fragment for HTMX request on failure for authenticated user")
         void shouldReturnErrorFragmentForHtmxRequestOnFailure() {
             // Given
+            UserId userId = UserId.generate();
+            Principal principal = () -> userId.value().toString();
+
+            when(mainContestEntryRepository.existsByUserIdAndContestId(any(), any())).thenReturn(true);
+            when(seasonPredictionRepository.existsByUserIdAndSeasonId(any(), any())).thenReturn(true);
+
             UseCaseError error = new UseCaseError.ValidationError("Invalid request");
             when(getUserPredictionUseCase.execute(any()))
                 .thenReturn(Either.left(error));
@@ -349,7 +391,7 @@ class UserPredictionsControllerTest {
             MockHttpServletResponse response = new MockHttpServletResponse();
 
             // When
-            String viewName = controller.myPredictions(null, null, model, response, "true");
+            String viewName = controller.myPredictions(null, principal, model, response, "true");
 
             // Then
             assertEquals("fragments/error-banner :: banner", viewName);

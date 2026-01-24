@@ -23,11 +23,18 @@ public class InMemoryRoundPredictionRepository implements RoundPredictionReposit
 
     private static final int CURRENT_ROUND = 19;
 
-    // User prediction state
-    private final List<PredictionRow> myPrediction;
-    private Instant lastSwapTime = null;
-    private boolean initialPredictionMade = false;
-    private int swapCount = 0;
+    // Per-user prediction state
+    private final Map<String, List<PredictionRow>> userPredictions = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, UserSwapState> userSwapStates = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Per-user swap state tracking.
+     */
+    private static class UserSwapState {
+        Instant lastSwapTime = null;
+        boolean initialPredictionMade = false;
+        int swapCount = 0;
+    }
 
     // Team data for initialization
     private static final List<TeamInfo> TEAMS = List.of(
@@ -54,7 +61,7 @@ public class InMemoryRoundPredictionRepository implements RoundPredictionReposit
     );
 
     public InMemoryRoundPredictionRepository() {
-        this.myPrediction = new ArrayList<>(initializePrediction());
+        // No initialization needed - per-user state is created on demand
     }
 
     private List<PredictionRow> initializePrediction() {
@@ -68,16 +75,21 @@ public class InMemoryRoundPredictionRepository implements RoundPredictionReposit
 
     @Override
     public List<PredictionRow> findCurrentByUser(UserId userId) {
-        return new ArrayList<>(myPrediction);
+        // Get user-specific prediction or initialize from default
+        String userKey = userId.value();
+        return new ArrayList<>(userPredictions.computeIfAbsent(userKey, k -> new ArrayList<>(initializePrediction())));
     }
 
     @Override
     public List<PredictionRow> findByUserAndRound(UserId userId, RoundNumber round) {
+        String userKey = userId.value();
+        List<PredictionRow> userPrediction = userPredictions.computeIfAbsent(userKey, k -> new ArrayList<>(initializePrediction()));
+
         // Get actual standings for the round to calculate hits
         Map<String, Integer> actualStandings = getActualStandings(round.value());
 
         List<PredictionRow> scoredPrediction = new ArrayList<>();
-        for (PredictionRow row : myPrediction) {
+        for (PredictionRow row : userPrediction) {
             Integer actualPos = actualStandings.get(row.getTeamCode());
             if (actualPos != null) {
                 scoredPrediction.add(row.withResult(actualPos));
@@ -90,16 +102,22 @@ public class InMemoryRoundPredictionRepository implements RoundPredictionReposit
 
     @Override
     public SwapCooldown getSwapCooldown(UserId userId) {
-        return new SwapCooldown(lastSwapTime, initialPredictionMade, swapCount, true);
+        String userKey = userId.value();
+        UserSwapState state = userSwapStates.computeIfAbsent(userKey, k -> new UserSwapState());
+        return new SwapCooldown(state.lastSwapTime, state.initialPredictionMade, state.swapCount, true);
     }
 
     @Override
     public void savePredictionOrder(UserId userId, List<PredictionRow> predictions) {
+        String userKey = userId.value();
+        List<PredictionRow> currentPrediction = userPredictions.computeIfAbsent(userKey, k -> new ArrayList<>(initializePrediction()));
+        UserSwapState state = userSwapStates.computeIfAbsent(userKey, k -> new UserSwapState());
+
         // Count changed teams
         int changedTeams = 0;
         for (int i = 0; i < predictions.size(); i++) {
             PredictionRow newRow = predictions.get(i);
-            PredictionRow oldRow = myPrediction.stream()
+            PredictionRow oldRow = currentPrediction.stream()
                 .filter(p -> p.getTeamCode().equals(newRow.getTeamCode()))
                 .findFirst()
                 .orElse(null);
@@ -111,33 +129,36 @@ public class InMemoryRoundPredictionRepository implements RoundPredictionReposit
 
         // Validate: After initial prediction, only 1 swap (2 teams) allowed
         int swapsAttempted = changedTeams / 2;
-        if (initialPredictionMade && swapsAttempted > 1) {
+        if (state.initialPredictionMade && swapsAttempted > 1) {
             throw new IllegalArgumentException(
                 "Only 1 swap allowed per period. You tried " + swapsAttempted + " swaps."
             );
         }
 
         // Update prediction
-        myPrediction.clear();
-        myPrediction.addAll(predictions);
+        currentPrediction.clear();
+        currentPrediction.addAll(predictions);
 
         recordSwap(userId, Instant.now());
     }
 
     @Override
     public void swapTeams(UserId userId, String teamA, String teamB) {
+        String userKey = userId.value();
+        List<PredictionRow> userPrediction = userPredictions.computeIfAbsent(userKey, k -> new ArrayList<>(initializePrediction()));
+
         int posA = -1, posB = -1;
-        for (int i = 0; i < myPrediction.size(); i++) {
-            if (myPrediction.get(i).getTeamCode().equals(teamA)) posA = i;
-            if (myPrediction.get(i).getTeamCode().equals(teamB)) posB = i;
+        for (int i = 0; i < userPrediction.size(); i++) {
+            if (userPrediction.get(i).getTeamCode().equals(teamA)) posA = i;
+            if (userPrediction.get(i).getTeamCode().equals(teamB)) posB = i;
         }
 
         if (posA != -1 && posB != -1) {
-            PredictionRow rowA = myPrediction.get(posA);
-            PredictionRow rowB = myPrediction.get(posB);
+            PredictionRow rowA = userPrediction.get(posA);
+            PredictionRow rowB = userPrediction.get(posB);
 
-            myPrediction.set(posA, rowB.withPosition(posA + 1));
-            myPrediction.set(posB, rowA.withPosition(posB + 1));
+            userPrediction.set(posA, rowB.withPosition(posA + 1));
+            userPrediction.set(posB, rowA.withPosition(posB + 1));
 
             recordSwap(userId, Instant.now());
         }
@@ -145,16 +166,21 @@ public class InMemoryRoundPredictionRepository implements RoundPredictionReposit
 
     @Override
     public void recordSwap(UserId userId, Instant swapTime) {
-        if (initialPredictionMade) {
-            swapCount++;
+        String userKey = userId.value();
+        UserSwapState state = userSwapStates.computeIfAbsent(userKey, k -> new UserSwapState());
+
+        if (state.initialPredictionMade) {
+            state.swapCount++;
         }
-        lastSwapTime = swapTime;
-        initialPredictionMade = true;
+        state.lastSwapTime = swapTime;
+        state.initialPredictionMade = true;
     }
 
     @Override
     public boolean hasInitialPrediction(UserId userId) {
-        return initialPredictionMade;
+        String userKey = userId.value();
+        UserSwapState state = userSwapStates.get(userKey);
+        return state != null && state.initialPredictionMade;
     }
 
     @Override
@@ -169,11 +195,9 @@ public class InMemoryRoundPredictionRepository implements RoundPredictionReposit
 
     @Override
     public void resetDemoState() {
-        this.lastSwapTime = null;
-        this.initialPredictionMade = false;
-        this.swapCount = 0;
-        this.myPrediction.clear();
-        this.myPrediction.addAll(initializePrediction());
+        // Clear all user state
+        userPredictions.clear();
+        userSwapStates.clear();
     }
 
     @Override

@@ -50,14 +50,14 @@ public class MainContestEntry {
         ContestEntryId id,
         UserId userId,
         ContestId contestId,
-        SeasonPredictionId seasonPredictionId,
+        SeasonPredictionId seasonPredictionId, // nullable - may not have season prediction yet
         Instant joinedAt
     ) {
-        this.id = id;
-        this.userId = userId;
-        this.contestId = contestId;
-        this.seasonPredictionId = seasonPredictionId;
-        this.joinedAt = joinedAt;
+        this.id = Objects.requireNonNull(id, "id cannot be null");
+        this.userId = Objects.requireNonNull(userId, "userId cannot be null");
+        this.contestId = Objects.requireNonNull(contestId, "contestId cannot be null");
+        this.seasonPredictionId = seasonPredictionId; // nullable
+        this.joinedAt = Objects.requireNonNull(joinedAt, "joinedAt cannot be null");
     }
 
     /**
@@ -87,6 +87,29 @@ public class MainContestEntry {
         Objects.requireNonNull(joinedAt, "Joined timestamp cannot be null");
 
         return new MainContestEntry(id, userId, contestId, seasonPredictionId, joinedAt);
+    }
+
+    /**
+     * Convenience factory method to create a contest entry without a season prediction link.
+     *
+     * <p>Used when a user joins the contest via round predictions before making a season prediction.
+     * The season prediction can be linked later when the user makes one.</p>
+     *
+     * @param userId the user joining the contest
+     * @param contestId the contest being joined
+     * @return a new MainContestEntry instance with generated ID and current timestamp
+     */
+    public static MainContestEntry createWithoutSeasonPrediction(UserId userId, ContestId contestId) {
+        Objects.requireNonNull(userId, "UserId cannot be null");
+        Objects.requireNonNull(contestId, "ContestId cannot be null");
+
+        return new MainContestEntry(
+            ContestEntryId.generate(),
+            userId,
+            contestId,
+            null, // No season prediction yet
+            Instant.now()
+        );
     }
 
     /**

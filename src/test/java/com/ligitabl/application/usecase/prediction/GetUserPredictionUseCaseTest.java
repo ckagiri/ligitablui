@@ -256,7 +256,7 @@ class GetUserPredictionUseCaseTest {
 
             assertEquals(PredictionAccessMode.CAN_CREATE_ENTRY, viewData.accessMode());
             assertTrue(viewData.canCreateEntry());
-            assertFalse(viewData.canSwap());
+            assertTrue(viewData.canSwap()); // CAN_CREATE_ENTRY users can swap to arrange their initial prediction
             assertFalse(viewData.isReadonly());
         }
     }

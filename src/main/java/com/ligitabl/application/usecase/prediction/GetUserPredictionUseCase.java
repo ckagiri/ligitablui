@@ -121,6 +121,19 @@ public class GetUserPredictionUseCase {
         boolean isCurrentRound
     ) {
         RankingsWithSource rankingsWithSource = getFallbackRankings(command);
+        RoundNumber viewingRoundNumber = RoundNumber.of(viewingRound);
+
+        // Get standings and points - use historical data for past rounds
+        Map<String, Integer> standingsMap = isCurrentRound
+            ? standingRepository.findCurrentPositionMap()
+            : standingRepository.findPositionMap(command.seasonId(), viewingRoundNumber);
+        Map<String, Integer> pointsMap = isCurrentRound
+            ? standingRepository.findCurrentPointsMap()
+            : standingRepository.findPointsMap(command.seasonId(), viewingRoundNumber);
+
+        String message = isCurrentRound
+            ? "Log in to create your prediction"
+            : "Viewing Gameweek " + viewingRound + " results";
 
         return new UserPredictionViewData(
             rankingsWithSource.rankings(),
@@ -128,12 +141,12 @@ public class GetUserPredictionUseCase {
             PredictionAccessMode.READONLY_GUEST,
             null, // swapCooldown not applicable
             isCurrentRound ? getFixtures(currentRound) : Map.of(),
-            isCurrentRound ? standingRepository.findCurrentPositionMap() : Map.of(),
-            isCurrentRound ? standingRepository.findCurrentPointsMap() : Map.of(),
+            standingsMap,
+            pointsMap,
             currentRound,
             viewingRound,
             isCurrentRound ? "OPEN" : "COMPLETED",
-            "Log in to create your prediction",
+            message,
             null // no target display name
         );
     }
@@ -148,54 +161,170 @@ public class GetUserPredictionUseCase {
         boolean isCurrentRound
     ) {
         UserContext ctx = command.userContext();
+        RoundNumber viewingRoundNumber = RoundNumber.of(viewingRound);
 
-        // If user has a prediction, show it
+        // Get swap cooldown for this user
+        SwapCooldown swapCooldown = roundPredictionRepository.getSwapCooldown(ctx.userId());
+
+        // First try to load from SeasonPredictionRepository (the proper domain model)
         if (ctx.hasSeasonPrediction()) {
-            var prediction = seasonPredictionRepository
-                .findByUserIdAndSeasonId(ctx.userId(), command.seasonId())
-                .orElseThrow(() -> new IllegalStateException(
-                    "User context indicates prediction exists but not found"
-                ));
+            var seasonPrediction = seasonPredictionRepository
+                .findByUserIdAndSeasonId(ctx.userId(), command.seasonId());
 
-            // Determine access mode based on swap cooldown
-            SwapCooldown swapCooldown = roundPredictionRepository.getSwapCooldown(ctx.userId());
-            PredictionAccessMode accessMode = determineAccessMode(swapCooldown, isCurrentRound);
+            if (seasonPrediction.isPresent()) {
+                PredictionAccessMode accessMode = determineAccessMode(swapCooldown, isCurrentRound);
 
-            return new UserPredictionViewData(
-                prediction.getRankings(),
-                RankingSource.USER_PREDICTION,
-                accessMode,
-                swapCooldown,
-                isCurrentRound ? getFixtures(currentRound) : Map.of(),
-                isCurrentRound ? standingRepository.findCurrentPositionMap() : Map.of(),
-                isCurrentRound ? standingRepository.findCurrentPointsMap() : Map.of(),
-                currentRound,
-                viewingRound,
-                isCurrentRound ? "OPEN" : "COMPLETED",
-                accessMode == PredictionAccessMode.READONLY_COOLDOWN
-                    ? "Swap cooldown active"
-                    : null,
-                null
-            );
+                // Get standings and points - use historical data for past rounds
+                Map<String, Integer> standingsMap = isCurrentRound
+                    ? standingRepository.findCurrentPositionMap()
+                    : standingRepository.findPositionMap(command.seasonId(), viewingRoundNumber);
+                Map<String, Integer> pointsMap = isCurrentRound
+                    ? standingRepository.findCurrentPointsMap()
+                    : standingRepository.findPointsMap(command.seasonId(), viewingRoundNumber);
+
+                String message = null;
+                if (!isCurrentRound) {
+                    message = "Viewing Gameweek " + viewingRound + " results";
+                } else if (accessMode == PredictionAccessMode.READONLY_COOLDOWN) {
+                    message = "Swap cooldown active";
+                }
+
+                return new UserPredictionViewData(
+                    seasonPrediction.get().getRankings(),
+                    RankingSource.USER_PREDICTION,
+                    accessMode,
+                    swapCooldown,
+                    isCurrentRound ? getFixtures(currentRound) : Map.of(),
+                    standingsMap,
+                    pointsMap,
+                    currentRound,
+                    viewingRound,
+                    isCurrentRound ? "OPEN" : "COMPLETED",
+                    message,
+                    null
+                );
+            }
+
+            // User context says they have a prediction, but not in SeasonPredictionRepository
+            // This means they made an initial prediction via the demo RoundPredictionRepository
+            // Load from there and convert to TeamRanking format
+            var roundPredictions = roundPredictionRepository.findCurrentByUser(ctx.userId());
+            if (!roundPredictions.isEmpty()) {
+                List<TeamRanking> rankings = convertPredictionRowsToRankings(roundPredictions);
+                PredictionAccessMode accessMode = determineAccessMode(swapCooldown, isCurrentRound);
+
+                Map<String, Integer> standingsMap = isCurrentRound
+                    ? standingRepository.findCurrentPositionMap()
+                    : standingRepository.findPositionMap(command.seasonId(), viewingRoundNumber);
+                Map<String, Integer> pointsMap = isCurrentRound
+                    ? standingRepository.findCurrentPointsMap()
+                    : standingRepository.findPointsMap(command.seasonId(), viewingRoundNumber);
+
+                String message = null;
+                if (!isCurrentRound) {
+                    message = "Viewing Gameweek " + viewingRound + " results";
+                } else if (accessMode == PredictionAccessMode.READONLY_COOLDOWN) {
+                    message = "Swap cooldown active";
+                }
+
+                return new UserPredictionViewData(
+                    rankings,
+                    RankingSource.USER_PREDICTION,
+                    accessMode,
+                    swapCooldown,
+                    isCurrentRound ? getFixtures(currentRound) : Map.of(),
+                    standingsMap,
+                    pointsMap,
+                    currentRound,
+                    viewingRound,
+                    isCurrentRound ? "OPEN" : "COMPLETED",
+                    message,
+                    null
+                );
+            }
         }
 
         // User is authenticated but has no prediction - show fallback with CAN_CREATE_ENTRY
         RankingsWithSource rankingsWithSource = getFallbackRankings(command);
 
+        // For past rounds without prediction, still show historical standings
+        Map<String, Integer> standingsMap = isCurrentRound
+            ? standingRepository.findCurrentPositionMap()
+            : standingRepository.findPositionMap(command.seasonId(), viewingRoundNumber);
+        Map<String, Integer> pointsMap = isCurrentRound
+            ? standingRepository.findCurrentPointsMap()
+            : standingRepository.findPointsMap(command.seasonId(), viewingRoundNumber);
+
+        // Can only create entry in current round
+        PredictionAccessMode accessMode = isCurrentRound
+            ? PredictionAccessMode.CAN_CREATE_ENTRY
+            : PredictionAccessMode.READONLY_COOLDOWN;
+
+        String message = isCurrentRound
+            ? "Arrange teams and submit to join the competition"
+            : "Viewing Gameweek " + viewingRound + " results";
+
         return new UserPredictionViewData(
             rankingsWithSource.rankings(),
             rankingsWithSource.source(),
-            PredictionAccessMode.CAN_CREATE_ENTRY,
+            accessMode,
             null, // no swap cooldown yet
             isCurrentRound ? getFixtures(currentRound) : Map.of(),
-            isCurrentRound ? standingRepository.findCurrentPositionMap() : Map.of(),
-            isCurrentRound ? standingRepository.findCurrentPointsMap() : Map.of(),
+            standingsMap,
+            pointsMap,
             currentRound,
             viewingRound,
             isCurrentRound ? "OPEN" : "COMPLETED",
-            "Arrange teams and submit to join the competition",
+            message,
             null
         );
+    }
+
+    /**
+     * Convert PredictionRow list to TeamRanking list.
+     * Used to bridge between the demo RoundPredictionRepository and the domain model.
+     */
+    private List<TeamRanking> convertPredictionRowsToRankings(List<com.ligitabl.domain.model.prediction.PredictionRow> rows) {
+        return rows.stream()
+            .map(row -> {
+                // Convert team code to TeamId format: "team-{code}-{padded number}"
+                String teamIdStr = "team-" + row.getTeamCode().toLowerCase() + "-" +
+                    String.format("%012d", getTeamNumber(row.getTeamCode()));
+                return TeamRanking.create(
+                    com.ligitabl.domain.model.team.TeamId.of(teamIdStr),
+                    row.getPosition()
+                );
+            })
+            .toList();
+    }
+
+    /**
+     * Get a unique number for a team code (used for TeamId generation).
+     */
+    private int getTeamNumber(String teamCode) {
+        return switch (teamCode) {
+            case "MCI" -> 1;
+            case "ARS" -> 2;
+            case "LIV" -> 3;
+            case "AVL" -> 4;
+            case "TOT" -> 5;
+            case "CHE" -> 6;
+            case "NEW" -> 7;
+            case "MUN" -> 8;
+            case "WHU" -> 9;
+            case "BHA" -> 10;
+            case "WOL" -> 11;
+            case "FUL" -> 12;
+            case "BOU" -> 13;
+            case "CRY" -> 14;
+            case "BRE" -> 15;
+            case "EVE" -> 16;
+            case "NFO" -> 17;
+            case "LEE" -> 18;
+            case "BUR" -> 19;
+            case "SUN" -> 20;
+            default -> 0;
+        };
     }
 
     /**
@@ -370,9 +499,11 @@ public class GetUserPredictionUseCase {
 
         /**
          * Check if user can swap teams.
+         * Returns true for EDITABLE or CAN_CREATE_ENTRY modes.
          */
         public boolean canSwap() {
-            return accessMode == PredictionAccessMode.EDITABLE;
+            return accessMode == PredictionAccessMode.EDITABLE ||
+                   accessMode == PredictionAccessMode.CAN_CREATE_ENTRY;
         }
 
         /**

@@ -178,9 +178,14 @@ public class RoundPredictionController {
      */
     @PostMapping("/predictions/swap-multiple")
     @ResponseBody
-    public Map<String, Object> makeMultipleSwaps(@RequestBody Map<String, List<String>> request) {
+    public Map<String, Object> makeMultipleSwaps(
+            @RequestBody Map<String, List<String>> request,
+            java.security.Principal principal) {
         List<String> teamCodes = request.get("teamCodes");
-        UserId userId = UserId.of(DEFAULT_USER_ID);
+
+        // Use logged-in user if available, otherwise fall back to default
+        String userIdStr = principal != null ? principal.getName() : DEFAULT_USER_ID;
+        UserId userId = UserId.of(userIdStr);
 
         UpdatePredictionOrderCommand command = UpdatePredictionOrderCommand.of(
             userId.value(),

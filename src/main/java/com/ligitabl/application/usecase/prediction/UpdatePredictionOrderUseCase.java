@@ -4,8 +4,12 @@ import com.ligitabl.api.shared.Either;
 import com.ligitabl.application.command.UpdatePredictionOrderCommand;
 import com.ligitabl.application.error.ErrorMapper;
 import com.ligitabl.application.error.UseCaseError;
+import com.ligitabl.domain.model.contest.ContestId;
+import com.ligitabl.domain.model.contest.MainContestEntry;
 import com.ligitabl.domain.model.prediction.PredictionRow;
 import com.ligitabl.domain.model.prediction.SwapCooldown;
+import com.ligitabl.domain.model.user.UserId;
+import com.ligitabl.domain.repository.MainContestEntryRepository;
 import com.ligitabl.domain.repository.RoundPredictionRepository;
 import org.springframework.stereotype.Service;
 
@@ -24,9 +28,16 @@ import java.util.stream.Collectors;
 public class UpdatePredictionOrderUseCase {
 
     private final RoundPredictionRepository predictionRepository;
+    private final MainContestEntryRepository mainContestEntryRepository;
+    private final ContestId mainContestId;
 
-    public UpdatePredictionOrderUseCase(RoundPredictionRepository predictionRepository) {
+    public UpdatePredictionOrderUseCase(
+            RoundPredictionRepository predictionRepository,
+            MainContestEntryRepository mainContestEntryRepository,
+            ContestId mainContestId) {
         this.predictionRepository = Objects.requireNonNull(predictionRepository);
+        this.mainContestEntryRepository = Objects.requireNonNull(mainContestEntryRepository);
+        this.mainContestId = Objects.requireNonNull(mainContestId);
     }
 
     /**
@@ -48,6 +59,9 @@ public class UpdatePredictionOrderUseCase {
             throw new IllegalStateException(cooldown.getStatusMessage(now));
         }
 
+        // Check if this is an initial prediction (user hasn't made one yet)
+        boolean isInitialPrediction = !cooldown.initialPredictionMade();
+
         // Get current predictions and create map by team code
         List<PredictionRow> currentPredictions = predictionRepository.findCurrentByUser(command.userId());
         Map<String, PredictionRow> predictionMap = currentPredictions.stream()
@@ -66,6 +80,16 @@ public class UpdatePredictionOrderUseCase {
 
         // Save new order (repository will validate swap count)
         predictionRepository.savePredictionOrder(command.userId(), newPredictions);
+
+        // If this is an initial prediction, create a contest entry
+        if (isInitialPrediction) {
+            UserId userId = command.userId();
+            // Only create if user doesn't already have an entry
+            if (!mainContestEntryRepository.existsByUserIdAndContestId(userId, mainContestId)) {
+                MainContestEntry entry = MainContestEntry.createWithoutSeasonPrediction(userId, mainContestId);
+                mainContestEntryRepository.save(entry);
+            }
+        }
 
         return new UpdateResult(newPredictions, true, "Prediction updated successfully");
     }
