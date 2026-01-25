@@ -430,7 +430,8 @@ class UserPredictionsControllerTest {
             19, // viewingRound
             "OPEN", // roundState
             "Test message",
-            targetDisplayName
+            targetDisplayName,
+            null  // roundResult
         );
     }
 }

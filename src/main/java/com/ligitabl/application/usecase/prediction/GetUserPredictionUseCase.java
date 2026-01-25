@@ -7,6 +7,7 @@ import com.ligitabl.application.error.UseCaseError;
 import com.ligitabl.domain.model.prediction.Fixture;
 import com.ligitabl.domain.model.prediction.PredictionAccessMode;
 import com.ligitabl.domain.model.prediction.SwapCooldown;
+import com.ligitabl.domain.model.roundresult.RoundResult;
 import com.ligitabl.domain.model.season.RoundNumber;
 import com.ligitabl.domain.model.seasonprediction.RankingSource;
 import com.ligitabl.domain.model.seasonprediction.TeamRanking;
@@ -41,6 +42,7 @@ public class GetUserPredictionUseCase {
     private final RoundStandingsRepository roundStandingsRepository;
     private final SeasonTeamRankingsRepository seasonTeamRankingsRepository;
     private final RoundPredictionRepository roundPredictionRepository;
+    private final RoundResultRepository roundResultRepository;
     private final FixtureRepository fixtureRepository;
     private final StandingRepository standingRepository;
 
@@ -49,6 +51,7 @@ public class GetUserPredictionUseCase {
         RoundStandingsRepository roundStandingsRepository,
         SeasonTeamRankingsRepository seasonTeamRankingsRepository,
         RoundPredictionRepository roundPredictionRepository,
+        RoundResultRepository roundResultRepository,
         FixtureRepository fixtureRepository,
         StandingRepository standingRepository
     ) {
@@ -67,6 +70,10 @@ public class GetUserPredictionUseCase {
         this.roundPredictionRepository = Objects.requireNonNull(
             roundPredictionRepository,
             "roundPredictionRepository is required"
+        );
+        this.roundResultRepository = Objects.requireNonNull(
+            roundResultRepository,
+            "roundResultRepository is required"
         );
         this.fixtureRepository = Objects.requireNonNull(
             fixtureRepository,
@@ -147,7 +154,8 @@ public class GetUserPredictionUseCase {
             viewingRound,
             isCurrentRound ? "OPEN" : "COMPLETED",
             message,
-            null // no target display name
+            null, // no target display name
+            null  // no round result for guest
         );
     }
 
@@ -171,21 +179,40 @@ public class GetUserPredictionUseCase {
             var seasonPrediction = seasonPredictionRepository
                 .findByUserIdAndSeasonId(ctx.userId(), command.seasonId());
 
+            // For historical rounds, load RoundResult with scored data
+            if (!isCurrentRound) {
+                var roundResult = roundResultRepository.findByUserAndRound(ctx.userId(), viewingRoundNumber);
+                if (roundResult.isPresent()) {
+                    // Convert RoundResult rankings to TeamRanking for display
+                    List<TeamRanking> rankings = convertResultRankingsToTeamRankings(roundResult.get());
+
+                    return new UserPredictionViewData(
+                        rankings,
+                        RankingSource.USER_PREDICTION,
+                        PredictionAccessMode.READONLY_COOLDOWN, // Historical is always readonly
+                        null, // No swap cooldown for historical
+                        Map.of(), // No fixtures for historical
+                        Map.of(), // Standings come from RoundResult
+                        Map.of(), // Points not needed for historical
+                        currentRound,
+                        viewingRound,
+                        "COMPLETED",
+                        "Viewing Gameweek " + viewingRound + " results",
+                        null,
+                        roundResult.get()
+                    );
+                }
+            }
+
             if (seasonPrediction.isPresent()) {
                 PredictionAccessMode accessMode = determineAccessMode(swapCooldown, isCurrentRound);
 
-                // Get standings and points - use historical data for past rounds
-                Map<String, Integer> standingsMap = isCurrentRound
-                    ? standingRepository.findCurrentPositionMap()
-                    : standingRepository.findPositionMap(command.seasonId(), viewingRoundNumber);
-                Map<String, Integer> pointsMap = isCurrentRound
-                    ? standingRepository.findCurrentPointsMap()
-                    : standingRepository.findPointsMap(command.seasonId(), viewingRoundNumber);
+                // Get standings and points for current round
+                Map<String, Integer> standingsMap = standingRepository.findCurrentPositionMap();
+                Map<String, Integer> pointsMap = standingRepository.findCurrentPointsMap();
 
                 String message = null;
-                if (!isCurrentRound) {
-                    message = "Viewing Gameweek " + viewingRound + " results";
-                } else if (accessMode == PredictionAccessMode.READONLY_COOLDOWN) {
+                if (accessMode == PredictionAccessMode.READONLY_COOLDOWN) {
                     message = "Swap cooldown active";
                 }
 
@@ -194,14 +221,15 @@ public class GetUserPredictionUseCase {
                     RankingSource.USER_PREDICTION,
                     accessMode,
                     swapCooldown,
-                    isCurrentRound ? getFixtures(currentRound) : Map.of(),
+                    getFixtures(currentRound),
                     standingsMap,
                     pointsMap,
                     currentRound,
                     viewingRound,
-                    isCurrentRound ? "OPEN" : "COMPLETED",
+                    "OPEN",
                     message,
-                    null
+                    null,
+                    null // No round result for current round
                 );
             }
 
@@ -213,17 +241,11 @@ public class GetUserPredictionUseCase {
                 List<TeamRanking> rankings = convertPredictionRowsToRankings(roundPredictions);
                 PredictionAccessMode accessMode = determineAccessMode(swapCooldown, isCurrentRound);
 
-                Map<String, Integer> standingsMap = isCurrentRound
-                    ? standingRepository.findCurrentPositionMap()
-                    : standingRepository.findPositionMap(command.seasonId(), viewingRoundNumber);
-                Map<String, Integer> pointsMap = isCurrentRound
-                    ? standingRepository.findCurrentPointsMap()
-                    : standingRepository.findPointsMap(command.seasonId(), viewingRoundNumber);
+                Map<String, Integer> standingsMap = standingRepository.findCurrentPositionMap();
+                Map<String, Integer> pointsMap = standingRepository.findCurrentPointsMap();
 
                 String message = null;
-                if (!isCurrentRound) {
-                    message = "Viewing Gameweek " + viewingRound + " results";
-                } else if (accessMode == PredictionAccessMode.READONLY_COOLDOWN) {
+                if (accessMode == PredictionAccessMode.READONLY_COOLDOWN) {
                     message = "Swap cooldown active";
                 }
 
@@ -232,14 +254,15 @@ public class GetUserPredictionUseCase {
                     RankingSource.USER_PREDICTION,
                     accessMode,
                     swapCooldown,
-                    isCurrentRound ? getFixtures(currentRound) : Map.of(),
+                    getFixtures(currentRound),
                     standingsMap,
                     pointsMap,
                     currentRound,
                     viewingRound,
-                    isCurrentRound ? "OPEN" : "COMPLETED",
+                    "OPEN",
                     message,
-                    null
+                    null,
+                    null // No round result for current round
                 );
             }
         }
@@ -276,8 +299,25 @@ public class GetUserPredictionUseCase {
             viewingRound,
             isCurrentRound ? "OPEN" : "COMPLETED",
             message,
-            null
+            null,
+            null // No round result
         );
+    }
+
+    /**
+     * Convert RoundResult rankings to TeamRanking list for template display.
+     */
+    private List<TeamRanking> convertResultRankingsToTeamRankings(RoundResult result) {
+        return result.rankings().stream()
+            .map(r -> {
+                String teamIdStr = "team-" + r.teamCode().toLowerCase() + "-" +
+                    String.format("%012d", getTeamNumber(r.teamCode()));
+                return TeamRanking.create(
+                    com.ligitabl.domain.model.team.TeamId.of(teamIdStr),
+                    r.predictedPosition()
+                );
+            })
+            .toList();
     }
 
     /**
@@ -337,8 +377,33 @@ public class GetUserPredictionUseCase {
         boolean isCurrentRound
     ) {
         UserContext ctx = command.userContext();
+        RoundNumber viewingRoundNumber = RoundNumber.of(viewingRound);
 
-        // If target user has a prediction, show it
+        // For historical rounds, load RoundResult with scored data
+        if (!isCurrentRound && ctx.hasSeasonPrediction()) {
+            var roundResult = roundResultRepository.findByUserAndRound(ctx.userId(), viewingRoundNumber);
+            if (roundResult.isPresent()) {
+                List<TeamRanking> rankings = convertResultRankingsToTeamRankings(roundResult.get());
+
+                return new UserPredictionViewData(
+                    rankings,
+                    RankingSource.USER_PREDICTION,
+                    PredictionAccessMode.READONLY_VIEWING_OTHER,
+                    null,
+                    Map.of(),
+                    Map.of(),
+                    Map.of(),
+                    currentRound,
+                    viewingRound,
+                    "COMPLETED",
+                    "Viewing " + (command.targetDisplayName() != null ? command.targetDisplayName() : "user") + "'s Gameweek " + viewingRound + " result",
+                    command.targetDisplayName(),
+                    roundResult.get()
+                );
+            }
+        }
+
+        // If target user has a prediction, show it (current round)
         if (ctx.hasSeasonPrediction()) {
             var prediction = seasonPredictionRepository
                 .findByUserIdAndSeasonId(ctx.userId(), command.seasonId())
@@ -351,14 +416,15 @@ public class GetUserPredictionUseCase {
                 RankingSource.USER_PREDICTION,
                 PredictionAccessMode.READONLY_VIEWING_OTHER,
                 null, // no swap cooldown - readonly
-                isCurrentRound ? getFixtures(currentRound) : Map.of(),
-                isCurrentRound ? standingRepository.findCurrentPositionMap() : Map.of(),
-                isCurrentRound ? standingRepository.findCurrentPointsMap() : Map.of(),
+                getFixtures(currentRound),
+                standingRepository.findCurrentPositionMap(),
+                standingRepository.findCurrentPointsMap(),
                 currentRound,
                 viewingRound,
-                isCurrentRound ? "OPEN" : "COMPLETED",
+                "OPEN",
                 "Viewing " + (command.targetDisplayName() != null ? command.targetDisplayName() : "user") + "'s prediction",
-                command.targetDisplayName()
+                command.targetDisplayName(),
+                null
             );
         }
 
@@ -377,7 +443,8 @@ public class GetUserPredictionUseCase {
             viewingRound,
             isCurrentRound ? "OPEN" : "COMPLETED",
             (command.targetDisplayName() != null ? command.targetDisplayName() : "This user") + " hasn't made a prediction yet",
-            command.targetDisplayName()
+            command.targetDisplayName(),
+            null
         );
     }
 
@@ -404,6 +471,7 @@ public class GetUserPredictionUseCase {
             viewingRound,
             isCurrentRound ? "OPEN" : "COMPLETED",
             "User not found",
+            null,
             null
         );
     }
@@ -478,7 +546,8 @@ public class GetUserPredictionUseCase {
         int viewingRound,
         String roundState,
         String message,
-        String targetDisplayName
+        String targetDisplayName,
+        RoundResult roundResult  // Present for historical views with scored results
     ) {
         public UserPredictionViewData {
             Objects.requireNonNull(rankings, "rankings are required");
@@ -488,6 +557,13 @@ public class GetUserPredictionUseCase {
             fixtures = fixtures != null ? Map.copyOf(fixtures) : Map.of();
             standingsMap = standingsMap != null ? Map.copyOf(standingsMap) : Map.of();
             pointsMap = pointsMap != null ? Map.copyOf(pointsMap) : Map.of();
+        }
+
+        /**
+         * Check if this view has historical round result data.
+         */
+        public boolean hasRoundResult() {
+            return roundResult != null;
         }
 
         /**

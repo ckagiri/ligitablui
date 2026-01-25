@@ -319,6 +319,17 @@ public class UserPredictionsController {
             ));
         }
 
+        // Round result for historical views
+        if (data.hasRoundResult()) {
+            var result = data.roundResult();
+            model.addAttribute("roundResult", result);
+            model.addAttribute("roundResultRankings", result.rankings());
+            model.addAttribute("totalScore", result.totalScore());
+            model.addAttribute("totalHits", result.getTotalHits());
+            model.addAttribute("zeroesCount", result.zeroesCount());
+        }
+        model.addAttribute("hasRoundResult", data.hasRoundResult());
+
         // Source information
         model.addAttribute("source", data.source().name());
         model.addAttribute("sourceLabel", getSourceLabel(data));

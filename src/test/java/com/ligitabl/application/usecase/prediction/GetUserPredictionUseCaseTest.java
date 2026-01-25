@@ -37,6 +37,7 @@ class GetUserPredictionUseCaseTest {
     private RoundStandingsRepository roundStandingsRepository;
     private SeasonTeamRankingsRepository seasonTeamRankingsRepository;
     private RoundPredictionRepository roundPredictionRepository;
+    private RoundResultRepository roundResultRepository;
     private FixtureRepository fixtureRepository;
     private StandingRepository standingRepository;
     private GetUserPredictionUseCase useCase;
@@ -50,6 +51,7 @@ class GetUserPredictionUseCaseTest {
         roundStandingsRepository = mock(RoundStandingsRepository.class);
         seasonTeamRankingsRepository = mock(SeasonTeamRankingsRepository.class);
         roundPredictionRepository = mock(RoundPredictionRepository.class);
+        roundResultRepository = mock(RoundResultRepository.class);
         fixtureRepository = mock(FixtureRepository.class);
         standingRepository = mock(StandingRepository.class);
 
@@ -68,6 +70,7 @@ class GetUserPredictionUseCaseTest {
             roundStandingsRepository,
             seasonTeamRankingsRepository,
             roundPredictionRepository,
+            roundResultRepository,
             fixtureRepository,
             standingRepository
         );
