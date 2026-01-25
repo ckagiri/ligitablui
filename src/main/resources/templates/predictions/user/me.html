@@ -340,10 +340,19 @@
                                                     </div>
                                                     <div>
                                                         <div class="text-sm font-medium text-gray-900" x-text="team.name"></div>
+                                                        <!-- Mobile: Fixtures -->
                                                         <div x-show="showFixtures && hasFixtures(team.code)" class="sm:hidden flex items-center gap-1.5 mt-1">
                                                             <template x-for="fixture in getFixtures(team.code)" :key="fixture.opponent">
                                                                 <span class="inline-flex items-center px-1.5 py-0.5 bg-gray-100 rounded text-[11px] font-medium text-gray-600">
-                                                                    <span x-show="!fixture.home">@</span><span x-text="fixture.opponent"></span>
+                                                                    <span x-show="!fixture.isHome">@</span><span x-text="fixture.opponent"></span>
+                                                                </span>
+                                                            </template>
+                                                        </div>
+                                                        <!-- Desktop: Fixtures -->
+                                                        <div x-show="showFixtures && hasFixtures(team.code)" class="hidden sm:flex items-center gap-1.5 mt-1">
+                                                            <template x-for="fixture in getFixtures(team.code)" :key="fixture.opponent">
+                                                                <span class="inline-flex items-center px-1.5 py-0.5 bg-gray-100 rounded text-[11px] font-medium text-gray-600">
+                                                                    <span x-show="!fixture.isHome">@</span><span x-text="fixture.opponent"></span>
                                                                 </span>
                                                             </template>
                                                         </div>
@@ -552,11 +561,19 @@
                                                     </div>
                                                     <div>
                                                         <div class="text-sm font-medium text-gray-900" x-text="team.name"></div>
-                                                        <!-- Mobile fixtures/standings -->
+                                                        <!-- Mobile: Fixtures -->
                                                         <div x-show="showFixtures && hasFixtures(team.code)" class="sm:hidden flex items-center gap-1.5 mt-1">
                                                             <template x-for="fixture in getFixtures(team.code)" :key="fixture.opponent">
                                                                 <span class="inline-flex items-center px-1.5 py-0.5 bg-gray-100 rounded text-[11px] font-medium text-gray-600">
-                                                                    <span x-show="!fixture.home">@</span><span x-text="fixture.opponent"></span>
+                                                                    <span x-show="!fixture.isHome">@</span><span x-text="fixture.opponent"></span>
+                                                                </span>
+                                                            </template>
+                                                        </div>
+                                                        <!-- Desktop: Fixtures -->
+                                                        <div x-show="showFixtures && hasFixtures(team.code)" class="hidden sm:flex items-center gap-1.5 mt-1">
+                                                            <template x-for="fixture in getFixtures(team.code)" :key="fixture.opponent">
+                                                                <span class="inline-flex items-center px-1.5 py-0.5 bg-gray-100 rounded text-[11px] font-medium text-gray-600">
+                                                                    <span x-show="!fixture.isHome">@</span><span x-text="fixture.opponent"></span>
                                                                 </span>
                                                             </template>
                                                         </div>
