@@ -4,7 +4,93 @@
       layout:decorate="~{layout/base}">
 <body>
 <div layout:fragment="content">
-    <div id="prediction-page" th:fragment="predictionPage" class="max-w-4xl mx-auto">
+    <div id="prediction-page" th:fragment="predictionPage" class="max-w-4xl mx-auto"
+         x-data="{
+             debugMode: localStorage.getItem('ligitabl.debug') === 'true',
+             debugExpanded: false,
+             forceRoundState: localStorage.getItem('ligitabl.forceRoundState') || '',
+             forceHasResult: localStorage.getItem('ligitabl.forceHasResult') || '',
+             toggleDebug() {
+                 this.debugMode = !this.debugMode;
+                 localStorage.setItem('ligitabl.debug', this.debugMode);
+             },
+             setForceState(key, value) {
+                 if (value) {
+                     localStorage.setItem('ligitabl.' + key, value);
+                 } else {
+                     localStorage.removeItem('ligitabl.' + key);
+                 }
+                 this[key] = value;
+             },
+             clearAllOverrides() {
+                 localStorage.removeItem('ligitabl.forceRoundState');
+                 localStorage.removeItem('ligitabl.forceHasResult');
+                 this.forceRoundState = '';
+                 this.forceHasResult = '';
+             }
+         }">
+
+        <!-- Debug Panel (visible when localStorage ligitabl.debug is true) -->
+        <div x-show="debugMode" x-cloak
+             class="fixed bottom-4 right-4 bg-gray-900 text-white text-xs rounded-lg shadow-lg p-3 z-50 max-w-sm">
+            <div class="flex items-center justify-between mb-2">
+                <span class="font-bold">🛠 Debug Panel</span>
+                <div class="flex gap-2">
+                    <button @click="debugExpanded = !debugExpanded" class="text-gray-400 hover:text-white">
+                        <span x-show="!debugExpanded">▼</span>
+                        <span x-show="debugExpanded">▲</span>
+                    </button>
+                    <button @click="toggleDebug()" class="text-gray-400 hover:text-white">&times;</button>
+                </div>
+            </div>
+
+            <!-- Current Values -->
+            <div class="text-gray-400 space-y-1 mb-3">
+                <p>roundState: <span class="text-green-400" th:text="${roundState}">open</span></p>
+                <p>isCurrentRound: <span class="text-green-400" th:text="${isCurrentRound}">true</span></p>
+                <p>hasRoundResult: <span class="text-green-400" th:text="${hasRoundResult}">false</span></p>
+                <p>canSwap: <span class="text-green-400" th:text="${canSwap}">true</span></p>
+                <p>source: <span class="text-green-400" th:text="${source}">USER_PREDICTION</span></p>
+            </div>
+
+            <!-- Override Controls (expandable) -->
+            <div x-show="debugExpanded" x-cloak class="border-t border-gray-700 pt-3 space-y-3">
+                <p class="text-yellow-400 font-semibold text-[10px]">⚠️ Overrides require backend support</p>
+
+                <div>
+                    <label class="block text-gray-500 mb-1">Force Round State:</label>
+                    <select x-model="forceRoundState"
+                            @change="setForceState('forceRoundState', $event.target.value)"
+                            class="w-full bg-gray-800 text-white rounded px-2 py-1 text-xs">
+                        <option value="">— Use Server Value —</option>
+                        <option value="open">🟢 open</option>
+                        <option value="locked">🔒 locked</option>
+                        <option value="completed">📊 completed</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-gray-500 mb-1">Force Has Result:</label>
+                    <select x-model="forceHasResult"
+                            @change="setForceState('forceHasResult', $event.target.value)"
+                            class="w-full bg-gray-800 text-white rounded px-2 py-1 text-xs">
+                        <option value="">— Use Server Value —</option>
+                        <option value="true">✅ true</option>
+                        <option value="false">❌ false</option>
+                    </select>
+                </div>
+
+                <button @click="clearAllOverrides()"
+                        class="w-full bg-red-800 hover:bg-red-700 text-white rounded px-2 py-1 text-xs">
+                    Clear All Overrides
+                </button>
+
+                <p class="text-gray-600 text-[10px]">
+                    Tip: Add ?roundState=locked to URL to test states
+                </p>
+            </div>
+        </div>
+
         <!-- Page Header -->
         <div class="bg-white rounded-lg shadow-sm mb-6">
             <div class="px-6 py-4 border-b border-gray-200">
@@ -17,8 +103,11 @@
                             <span class="text-sm sm:text-base text-gray-600">
                                 Gameweek <span th:text="${viewingRound}">19</span>
                             </span>
-                            <span th:if="${isCurrentRound}" class="text-xs sm:text-sm font-medium text-green-600">
-                                (Current)
+                            <!-- State indicators -->
+                            <span th:if="${isCurrentRound}" class="inline-flex items-center gap-1 text-xs sm:text-sm font-medium">
+                                <span th:if="${roundState == 'open'}" class="text-green-600">🟢 Open</span>
+                                <span th:if="${roundState == 'locked' || (roundState == 'completed' && !hasRoundResult)}" class="text-yellow-600">🔒 Locked</span>
+                                <span th:if="${roundState == 'completed' && hasRoundResult}" class="text-blue-600">📊 Finalized</span>
                             </span>
                         </div>
                     </div>
@@ -112,27 +201,82 @@
                         </div>
                     </div>
 
+                    <!-- Locked State Banner -->
+                    <div th:if="${isCurrentRound && (roundState == 'locked' || (roundState == 'completed' && !hasRoundResult))}"
+                         class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div class="flex items-start">
+                            <svg class="h-5 w-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-medium text-yellow-800">🔒 Round Locked</p>
+                                <p class="text-sm text-yellow-700 mt-1">
+                                    <span th:if="${roundState == 'locked'}">Matches are in progress.</span>
+                                    <span th:if="${roundState == 'completed' && !hasRoundResult}">Results are being calculated.</span>
+                                    Predictions are locked until results are finalized.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Finalized State Banner (only when round is completed with results) -->
+                    <div th:if="${isCurrentRound && roundState == 'completed' && hasRoundResult}"
+                         class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div class="flex items-start">
+                            <svg class="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm4-1a1 1 0 011 1v3a1 1 0 11-2 0v-3a1 1 0 011-1zm-2-7v3a1 1 0 001 1h3" clip-rule="evenodd"/>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-medium text-blue-800">📊 Round Finalized</p>
+                                <p class="text-sm text-blue-700 mt-1">
+                                    Your prediction has been graded. You scored <strong th:text="${totalScore}">156</strong> points this round.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Historical Round Info Banner -->
+                    <div th:if="${!isCurrentRound && !isGuest && !isViewingOther && !isUserNotFound}"
+                         class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div class="flex items-start">
+                            <svg class="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-medium text-blue-800">📊 Historical Prediction</p>
+                                <p class="text-sm text-blue-700 mt-1">
+                                    This is your prediction from Gameweek <span th:text="${viewingRound}">18</span>.
+                                    <span th:if="${hasRoundResult}">
+                                        You scored <strong th:text="${totalScore}">42</strong> points this round.
+                                    </span>
+                                    This view is read-only.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Status Indicator (for own predictions, excluding first swap bonus state) -->
                     <div th:if="${!isGuest && !isViewingOther && !isUserNotFound && !canCreateEntry && !(swapStatus != null && swapStatus.firstSwapBonus)}" class="inline-flex items-center gap-2 text-sm">
-                        <span th:if="${canSwap}" class="flex items-center gap-1.5 text-green-600 font-medium">
+                        <span th:if="${isCurrentRound && canSwap}" class="flex items-center gap-1.5 text-green-600 font-medium">
                             <span class="w-2 h-2 bg-green-600 rounded-full"></span>
                             Ready to modify
                         </span>
-                        <span th:if="${!canSwap && accessMode == 'READONLY_COOLDOWN'}" class="flex items-center gap-1.5 text-yellow-600 font-medium">
+                        <span th:if="${isCurrentRound && !canSwap && accessMode == 'READONLY_COOLDOWN'}" class="flex items-center gap-1.5 text-yellow-600 font-medium">
                             <span class="w-2 h-2 bg-yellow-600 rounded-full"></span>
                             Cooldown active
                         </span>
                     </div>
                 </div>
 
-                <!-- Round Navigation (only for non-guest, non-error states) -->
-                <div th:if="${!isUserNotFound}" class="flex flex-col space-y-3">
+                <!-- Round Navigation (only for authenticated users, non-error states) -->
+                <div th:if="${!isGuest && !isUserNotFound}" class="flex flex-col space-y-3">
                     <div class="flex items-center justify-between gap-2">
                         <!-- Previous Button -->
                         <button th:attr="hx-get=@{/predictions/user/me(round=${viewingRound - 1})}"
                                 hx-target="#prediction-page"
                                 hx-swap="outerHTML swap:300ms"
                                 hx-push-url="true"
+                                hx-on::after-settle="window.scrollTo({top: 0, behavior: 'smooth'})"
                                 th:disabled="${viewingRound <= 1}"
                                 th:classappend="${viewingRound <= 1 ? 'opacity-50 cursor-not-allowed' : ''}"
                                 class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition disabled:hover:bg-white">
@@ -148,6 +292,7 @@
                                 hx-target="#prediction-page"
                                 hx-swap="outerHTML swap:300ms"
                                 hx-push-url="true"
+                                hx-on::after-settle="window.scrollTo({top: 0, behavior: 'smooth'})"
                                 hx-include="this"
                                 name="round"
                                 class="flex-1 sm:flex-initial sm:w-auto sm:min-w-[200px] px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
@@ -164,6 +309,7 @@
                                 hx-target="#prediction-page"
                                 hx-swap="outerHTML swap:300ms"
                                 hx-push-url="true"
+                                hx-on::after-settle="window.scrollTo({top: 0, behavior: 'smooth'})"
                                 th:disabled="${viewingRound >= currentRound}"
                                 th:classappend="${viewingRound >= currentRound ? 'opacity-50 cursor-not-allowed' : ''}"
                                 class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition disabled:hover:bg-white">
@@ -179,6 +325,7 @@
                         <button th:attr="hx-get=@{/predictions/user/me(round=${currentRound})}"
                                 hx-target="#prediction-page"
                                 hx-swap="outerHTML swap:300ms"
+                                hx-on::after-settle="window.scrollTo({top: 0, behavior: 'smooth'})"
                                 hx-push-url="true"
                                 class="inline-flex items-center px-3 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition">
                             Jump to Current
@@ -259,8 +406,8 @@
                     </div>
                 </div>
 
-                <!-- Comparison Options for guests -->
-                <div th:if="${isCurrentRound}" class="px-6 pt-4 pb-2 space-y-2">
+                <!-- Comparison Options for guests (only when round is open or locked) -->
+                <div th:if="${isCurrentRound && (roundState == 'open' || roundState == 'locked')}" class="px-6 pt-4 pb-2 space-y-2">
                     <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900 transition">
                         <input type="checkbox"
                                x-model="showStandings"
@@ -453,8 +600,8 @@
                     </div>
                 </div>
 
-                <!-- Comparison Options (only for current round with editable/viewable state) -->
-                <div th:if="${isCurrentRound && !isUserNotFound}" class="px-6 pt-4 pb-2 space-y-2">
+                <!-- Comparison Options (only for current round when open or locked) -->
+                <div th:if="${isCurrentRound && !isUserNotFound && (roundState == 'open' || roundState == 'locked')}" class="px-6 pt-4 pb-2 space-y-2">
                     <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900 transition">
                         <input type="checkbox"
                                x-model="showStandings"
@@ -615,8 +762,7 @@
 
                                 <!-- Static rows for historical view with RoundResult data -->
                                 <tr th:if="${!isCurrentRound && hasRoundResult}" th:each="rank : ${roundResultRankings}"
-                                    th:classappend="${rank.hit == 0} ? 'bg-green-50' : (${rank.hit <= 2} ? 'bg-yellow-50' : '')"
-                                    class="hover:bg-gray-100">
+                                    class="hover:bg-gray-50">
                                     <td class="px-2 sm:px-3 py-3 sm:py-4 whitespace-nowrap">
                                         <span class="text-xs sm:text-sm font-bold text-gray-900" th:text="${rank.predictedPosition}">1</span>
                                     </td>
@@ -658,24 +804,23 @@
                 </div>
 
                 <!-- Score Summary for Historical Rounds -->
-                <div th:if="${!isCurrentRound && hasRoundResult}" class="px-6 py-4 bg-gray-50 border-t border-gray-200">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div class="flex items-center gap-4">
-                            <div class="text-center">
-                                <div class="text-2xl font-bold text-indigo-600" th:text="${totalScore}">185</div>
-                                <div class="text-xs text-gray-500">Score</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-lg font-semibold text-gray-700" th:text="${totalHits}">15</div>
-                                <div class="text-xs text-gray-500">Total Hits</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-lg font-semibold text-green-600" th:text="${zeroesCount}">5</div>
-                                <div class="text-xs text-gray-500">Perfect</div>
-                            </div>
+                <div th:if="${!isCurrentRound && hasRoundResult}" class="mt-4 text-center pb-4">
+                    <div class="inline-flex flex-col items-center px-6 py-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="flex items-center text-sm text-gray-600 mb-1">
+                            <span class="font-mono">200</span>
+                            <span class="mx-2">−</span>
+                            <span class="font-mono" th:text="${totalHits}">156</span>
+                            <span class="mx-2">=</span>
+                            <span class="font-mono font-bold text-gray-900" th:text="${totalScore}">44</span>
+                            <span class="ml-1">points</span>
                         </div>
-                        <div class="text-xs text-gray-400">
-                            Score = 200 - Total Hits
+
+                        <div class="text-xs text-green-600 font-semibold">
+                            🎯 <span th:text="${zeroesCount}">5</span> perfect predictions!
+                        </div>
+
+                        <div class="text-xs text-gray-500">
+                            (Max: 200, Lost: <span th:text="${totalHits}">156</span>)
                         </div>
                     </div>
                 </div>

@@ -24,6 +24,37 @@ public class InMemoryRoundStandingsRepository implements RoundStandingsRepositor
     // Track latest round per season: seasonId -> roundNumber
     private final Map<String, RoundNumber> latestRoundBySeason = new ConcurrentHashMap<>();
 
+    // Demo season ID (must match DataInitializer.ACTIVE_SEASON_ID)
+    private static final String DEMO_SEASON_ID = "550e8400-e29b-41d4-a716-446655440000";
+
+    // Current round standings (matches InMemoryStandingRepository order)
+    private static final List<String> TEAM_CODES = List.of(
+        "MCI", "ARS", "LIV", "AVL", "TOT", "CHE", "NEW", "MUN", "WHU", "BHA",
+        "WOL", "FUL", "BOU", "CRY", "BRE", "EVE", "NFO", "LEE", "BUR", "SUN"
+    );
+
+    public InMemoryRoundStandingsRepository() {
+        // Initialize with current round standings for demo
+        initializeCurrentRoundStandings();
+    }
+
+    private void initializeCurrentRoundStandings() {
+        SeasonId seasonId = SeasonId.of(DEMO_SEASON_ID);
+        RoundNumber currentRound = RoundNumber.of(19);
+
+        List<TeamRanking> currentStandings = new java.util.ArrayList<>();
+        for (int i = 0; i < TEAM_CODES.size(); i++) {
+            String teamCode = TEAM_CODES.get(i);
+            String teamId = "team-" + teamCode.toLowerCase() + "-" + String.format("%012d", i + 1);
+            currentStandings.add(TeamRanking.create(
+                com.ligitabl.domain.model.team.TeamId.of(teamId),
+                i + 1
+            ));
+        }
+
+        save(seasonId, currentRound, currentStandings);
+    }
+
     @Override
     public Optional<List<TeamRanking>> findBySeasonIdAndRoundNumber(SeasonId seasonId, RoundNumber roundNumber) {
         Objects.requireNonNull(seasonId, "SeasonId cannot be null");

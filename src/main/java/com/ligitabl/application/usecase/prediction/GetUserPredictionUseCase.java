@@ -268,6 +268,29 @@ public class GetUserPredictionUseCase {
         }
 
         // User is authenticated but has no prediction - show fallback with CAN_CREATE_ENTRY
+        // For historical rounds, try to load RoundResult with demo data
+        if (!isCurrentRound) {
+            var roundResult = roundResultRepository.findByUserAndRound(ctx.userId(), viewingRoundNumber);
+            if (roundResult.isPresent()) {
+                List<TeamRanking> rankings = convertResultRankingsToTeamRankings(roundResult.get());
+                return new UserPredictionViewData(
+                    rankings,
+                    RankingSource.USER_PREDICTION,
+                    PredictionAccessMode.READONLY_COOLDOWN,
+                    null, // No swap cooldown for historical
+                    Map.of(), // No fixtures for historical
+                    Map.of(), // Standings come from RoundResult
+                    Map.of(), // Points not needed for historical
+                    currentRound,
+                    viewingRound,
+                    "COMPLETED",
+                    "Viewing Gameweek " + viewingRound + " results",
+                    null,
+                    roundResult.get()
+                );
+            }
+        }
+
         RankingsWithSource rankingsWithSource = getFallbackRankings(command);
 
         // For past rounds without prediction, still show historical standings

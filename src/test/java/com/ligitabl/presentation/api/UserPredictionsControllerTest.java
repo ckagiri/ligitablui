@@ -88,7 +88,7 @@ class UserPredictionsControllerTest {
             MockHttpServletResponse response = new MockHttpServletResponse();
 
             // When
-            String viewName = controller.myPredictions(null, null, model, response, null);
+            String viewName = controller.myPredictions(null, null, null, model, response, null);
 
             // Then - should redirect to /guest endpoint
             assertEquals("redirect:/predictions/user/guest", viewName);
@@ -104,7 +104,7 @@ class UserPredictionsControllerTest {
             MockHttpServletResponse response = new MockHttpServletResponse();
 
             // When
-            String viewName = controller.myPredictions(15, null, model, response, null);
+            String viewName = controller.myPredictions(15, null, null, model, response, null);
 
             // Then - should redirect to /guest endpoint with round param
             assertEquals("redirect:/predictions/user/guest?round=15", viewName);
@@ -132,7 +132,7 @@ class UserPredictionsControllerTest {
             MockHttpServletResponse response = new MockHttpServletResponse();
 
             // When
-            String viewName = controller.myPredictions(null, principal, model, response, null);
+            String viewName = controller.myPredictions(null, null, principal, model, response, null);
 
             // Then
             assertEquals("predictions/user/me", viewName);
@@ -164,7 +164,7 @@ class UserPredictionsControllerTest {
             MockHttpServletResponse response = new MockHttpServletResponse();
 
             // When
-            String viewName = controller.myPredictions(null, principal, model, response, null);
+            String viewName = controller.myPredictions(null, null, principal, model, response, null);
 
             // Then
             assertEquals("predictions/user/me", viewName);
@@ -194,7 +194,7 @@ class UserPredictionsControllerTest {
             MockHttpServletResponse response = new MockHttpServletResponse();
 
             // When
-            String viewName = controller.myPredictions(null, principal, model, response, "true");
+            String viewName = controller.myPredictions(null, null, principal, model, response, "true");
 
             // Then
             assertEquals("predictions/user/me :: predictionPage", viewName);
@@ -209,7 +209,7 @@ class UserPredictionsControllerTest {
             MockHttpServletResponse response = new MockHttpServletResponse();
 
             // When
-            String viewName = controller.myPredictions(null, null, model, response, "true");
+            String viewName = controller.myPredictions(null, null, null, model, response, "true");
 
             // Then - should still redirect (HTMX will follow redirect)
             assertEquals("redirect:/predictions/user/guest", viewName);
@@ -362,7 +362,7 @@ class UserPredictionsControllerTest {
             MockHttpServletResponse response = new MockHttpServletResponse();
 
             // When
-            String viewName = controller.myPredictions(null, principal, model, response, null);
+            String viewName = controller.myPredictions(null, null, principal, model, response, null);
 
             // Then
             assertEquals("error", viewName);
@@ -391,7 +391,7 @@ class UserPredictionsControllerTest {
             MockHttpServletResponse response = new MockHttpServletResponse();
 
             // When
-            String viewName = controller.myPredictions(null, principal, model, response, "true");
+            String viewName = controller.myPredictions(null, null, principal, model, response, "true");
 
             // Then
             assertEquals("fragments/error-banner :: banner", viewName);

@@ -96,13 +96,14 @@ public class UserPredictionsController {
     @GetMapping("/me")
     public String myPredictions(
         @RequestParam(required = false) Integer round,
+        @RequestParam(required = false) String state,  // For testing: open, locked, completed
         Principal principal,
         Model model,
         HttpServletResponse response,
         @RequestHeader(value = "HX-Request", required = false) String hxRequest
     ) {
-        log.info("GET /predictions/user/me - round: {}, user: {}",
-            round, principal != null ? principal.getName() : "guest");
+        log.info("GET /predictions/user/me - round: {}, state: {}, user: {}",
+            round, state, principal != null ? principal.getName() : "guest");
 
         // Redirect guests to /guest endpoint - /me implies "my account"
         if (principal == null) {
@@ -120,7 +121,7 @@ public class UserPredictionsController {
 
         return result.fold(
             error -> handleError(error, model, response, hxRequest),
-            data -> handleSuccess(data, model, hxRequest)
+            data -> handleSuccess(data, model, hxRequest, state)
         );
     }
 
@@ -145,7 +146,7 @@ public class UserPredictionsController {
 
         return result.fold(
             error -> handleError(error, model, response, hxRequest),
-            data -> handleSuccess(data, model, hxRequest)
+            data -> handleSuccess(data, model, hxRequest, null)
         );
     }
 
@@ -173,7 +174,7 @@ public class UserPredictionsController {
 
         // Check if viewing own predictions
         if (principal != null && principal.getName().equals(userId)) {
-            return myPredictions(round, principal, model, response, hxRequest);
+            return myPredictions(round, null, principal, model, response, hxRequest);
         }
 
         GetUserPredictionCommand command = buildCommandForUser(userId, round);
@@ -183,7 +184,7 @@ public class UserPredictionsController {
 
         return result.fold(
             error -> handleError(error, model, response, hxRequest),
-            data -> handleSuccess(data, model, hxRequest)
+            data -> handleSuccess(data, model, hxRequest, null)
         );
     }
 
@@ -278,19 +279,25 @@ public class UserPredictionsController {
     private String handleSuccess(
         GetUserPredictionUseCase.UserPredictionViewData data,
         Model model,
-        String hxRequest
+        String hxRequest,
+        String stateOverride  // For testing: "open", "locked", "completed"
     ) {
         // Convert rankings to DTOs
         List<RankingDTO> predictions = data.rankings().stream()
             .map(viewMapper::toRankingDTO)
             .toList();
 
+        // Determine round state (use override if provided, for testing)
+        String roundState = (stateOverride != null && !stateOverride.isBlank())
+            ? stateOverride.toLowerCase()
+            : data.roundState().toLowerCase();
+
         // Set model attributes for template
         model.addAttribute("pageTitle", getPageTitle(data));
         model.addAttribute("currentRound", data.currentRound());
         model.addAttribute("viewingRound", data.viewingRound());
         model.addAttribute("isCurrentRound", data.isCurrentRound());
-        model.addAttribute("roundState", data.roundState().toLowerCase());
+        model.addAttribute("roundState", roundState);
         model.addAttribute("predictions", predictions);
 
         // Access mode attributes
