@@ -274,6 +274,17 @@
             </div>
         </div>
 
+        <!-- Clear guest localStorage on login (if user has entry) or logout -->
+        <script th:if="${clearGuestPrediction}">
+            (function() {
+                const GUEST_STORAGE_KEY = 'ligitabl.guestPrediction';
+                if (localStorage.getItem(GUEST_STORAGE_KEY)) {
+                    localStorage.removeItem(GUEST_STORAGE_KEY);
+                    console.log('[Ligitabl] Cleared guest prediction from localStorage');
+                }
+            })();
+        </script>
+
         <div layout:fragment="content">
             <!-- Page content goes here -->
         </div>

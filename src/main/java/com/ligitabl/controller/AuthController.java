@@ -1,6 +1,8 @@
 package com.ligitabl.controller;
 
+import com.ligitabl.domain.model.contest.ContestId;
 import com.ligitabl.domain.model.user.UserId;
+import com.ligitabl.domain.repository.MainContestEntryRepository;
 import com.ligitabl.infrastructure.auth.DemoAuthFilter;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -44,6 +46,14 @@ public class AuthController {
     // In a real app, this would be a database
     private static final Map<String, String> DEMO_USERS = new ConcurrentHashMap<>();
     private static final Map<String, String> DEMO_DISPLAY_NAMES = new ConcurrentHashMap<>();
+
+    private final MainContestEntryRepository mainContestEntryRepository;
+    private final ContestId mainContestId;
+
+    public AuthController(MainContestEntryRepository mainContestEntryRepository, ContestId mainContestId) {
+        this.mainContestEntryRepository = mainContestEntryRepository;
+        this.mainContestId = mainContestId;
+    }
 
     @GetMapping("/register")
     public String showRegisterForm(Model model) {
@@ -141,6 +151,14 @@ public class AuthController {
 
         log.info("Demo login: email={}, userId={}", email, userId);
 
+        // Check if user already has a contest entry - if so, clear guest localStorage
+        boolean hasContestEntry = mainContestEntryRepository.existsByUserIdAndContestId(
+            UserId.of(userId), mainContestId);
+        if (hasContestEntry) {
+            redirectAttributes.addFlashAttribute("clearGuestPrediction", true);
+            log.info("User {} has existing contest entry, will clear guest localStorage", userId);
+        }
+
         redirectAttributes.addFlashAttribute("message",
             "Welcome back, " + displayName + "!");
         redirectAttributes.addFlashAttribute("messageType", "success");
@@ -157,6 +175,9 @@ public class AuthController {
         session.removeAttribute(DemoAuthFilter.SESSION_DISPLAY_NAME_KEY);
 
         log.info("Demo logout: displayName={}", displayName);
+
+        // Signal frontend to clear guest localStorage on logout
+        redirectAttributes.addFlashAttribute("clearGuestPrediction", true);
 
         redirectAttributes.addFlashAttribute("message",
             "You've been logged out. See you next time!");

@@ -16,6 +16,7 @@ import com.ligitabl.domain.repository.RoundPredictionRepository;
 import com.ligitabl.domain.repository.SeasonPredictionRepository;
 import com.ligitabl.presentation.mapper.ErrorViewMapper;
 import com.ligitabl.presentation.mapper.SeasonPredictionViewMapper;
+import com.ligitabl.service.InMemoryDataService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -46,6 +47,7 @@ class UserPredictionsControllerTest {
     private SeasonPredictionViewMapper viewMapper;
     private ErrorViewMapper errorMapper;
     private ObjectMapper objectMapper;
+    private InMemoryDataService dataService;
     private SeasonId activeSeasonId;
     private ContestId mainContestId;
     private UserPredictionsController controller;
@@ -59,6 +61,7 @@ class UserPredictionsControllerTest {
         viewMapper = mock(SeasonPredictionViewMapper.class);
         errorMapper = mock(ErrorViewMapper.class);
         objectMapper = new ObjectMapper();
+        dataService = mock(InMemoryDataService.class);
         activeSeasonId = SeasonId.generate();
         mainContestId = ContestId.generate();
 
@@ -70,6 +73,7 @@ class UserPredictionsControllerTest {
             viewMapper,
             errorMapper,
             objectMapper,
+            dataService,
             activeSeasonId,
             mainContestId
         );

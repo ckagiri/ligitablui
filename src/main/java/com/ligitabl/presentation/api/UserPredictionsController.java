@@ -15,6 +15,8 @@ import com.ligitabl.domain.repository.SeasonPredictionRepository;
 import com.ligitabl.presentation.dto.response.RankingDTO;
 import com.ligitabl.presentation.mapper.ErrorViewMapper;
 import com.ligitabl.presentation.mapper.SeasonPredictionViewMapper;
+import com.ligitabl.service.InMemoryDataService;
+import com.ligitabl.dto.Responses.LatestResultResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +60,7 @@ public class UserPredictionsController {
     private final SeasonPredictionViewMapper viewMapper;
     private final ErrorViewMapper errorMapper;
     private final ObjectMapper objectMapper;
+    private final InMemoryDataService dataService;
     private final SeasonId activeSeasonId;
     private final ContestId mainContestId;
 
@@ -69,6 +72,7 @@ public class UserPredictionsController {
         SeasonPredictionViewMapper viewMapper,
         ErrorViewMapper errorMapper,
         ObjectMapper objectMapper,
+        InMemoryDataService dataService,
         SeasonId activeSeasonId,
         ContestId mainContestId
     ) {
@@ -79,6 +83,7 @@ public class UserPredictionsController {
         this.viewMapper = viewMapper;
         this.errorMapper = errorMapper;
         this.objectMapper = objectMapper;
+        this.dataService = dataService;
         this.activeSeasonId = activeSeasonId;
         this.mainContestId = mainContestId;
     }
@@ -123,6 +128,21 @@ public class UserPredictionsController {
             error -> handleError(error, model, response, hxRequest),
             data -> handleSuccess(data, model, hxRequest, state)
         );
+    }
+
+    /**
+     * GET /predictions/user/me/latest-result-banner - Latest result banner for HTMX.
+     */
+    @GetMapping("/me/latest-result-banner")
+    public String getLatestResultBanner(Model model) {
+        LatestResultResponse result = dataService.getLatestResult();
+
+        if (result != null) {
+            model.addAttribute("result", result);
+            return "fragments/results-banner :: results-banner-user(result=${result})";
+        }
+
+        return "fragments/results-banner :: results-banner-user(result=null)";
     }
 
     /**
