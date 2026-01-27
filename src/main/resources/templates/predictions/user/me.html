@@ -4,92 +4,7 @@
       layout:decorate="~{layout/base}">
 <body>
 <div layout:fragment="content">
-    <div id="prediction-page" th:fragment="predictionPage" class="max-w-4xl mx-auto"
-         x-data="{
-             debugMode: localStorage.getItem('ligitabl.debug') === 'true',
-             debugExpanded: false,
-             forceRoundState: localStorage.getItem('ligitabl.forceRoundState') || '',
-             forceHasResult: localStorage.getItem('ligitabl.forceHasResult') || '',
-             toggleDebug() {
-                 this.debugMode = !this.debugMode;
-                 localStorage.setItem('ligitabl.debug', this.debugMode);
-             },
-             setForceState(key, value) {
-                 if (value) {
-                     localStorage.setItem('ligitabl.' + key, value);
-                 } else {
-                     localStorage.removeItem('ligitabl.' + key);
-                 }
-                 this[key] = value;
-             },
-             clearAllOverrides() {
-                 localStorage.removeItem('ligitabl.forceRoundState');
-                 localStorage.removeItem('ligitabl.forceHasResult');
-                 this.forceRoundState = '';
-                 this.forceHasResult = '';
-             }
-         }">
-
-        <!-- Debug Panel (visible when localStorage ligitabl.debug is true) -->
-        <div x-show="debugMode" x-cloak
-             class="fixed bottom-4 right-4 bg-gray-900 text-white text-xs rounded-lg shadow-lg p-3 z-50 max-w-sm">
-            <div class="flex items-center justify-between mb-2">
-                <span class="font-bold">🛠 Debug Panel</span>
-                <div class="flex gap-2">
-                    <button @click="debugExpanded = !debugExpanded" class="text-gray-400 hover:text-white">
-                        <span x-show="!debugExpanded">▼</span>
-                        <span x-show="debugExpanded">▲</span>
-                    </button>
-                    <button @click="toggleDebug()" class="text-gray-400 hover:text-white">&times;</button>
-                </div>
-            </div>
-
-            <!-- Current Values -->
-            <div class="text-gray-400 space-y-1 mb-3">
-                <p>roundState: <span class="text-green-400" th:text="${roundState}">open</span></p>
-                <p>isCurrentRound: <span class="text-green-400" th:text="${isCurrentRound}">true</span></p>
-                <p>hasRoundResult: <span class="text-green-400" th:text="${hasRoundResult}">false</span></p>
-                <p>canSwap: <span class="text-green-400" th:text="${canSwap}">true</span></p>
-                <p>source: <span class="text-green-400" th:text="${source}">USER_PREDICTION</span></p>
-            </div>
-
-            <!-- Override Controls (expandable) -->
-            <div x-show="debugExpanded" x-cloak class="border-t border-gray-700 pt-3 space-y-3">
-                <p class="text-yellow-400 font-semibold text-[10px]">⚠️ Overrides require backend support</p>
-
-                <div>
-                    <label class="block text-gray-500 mb-1">Force Round State:</label>
-                    <select x-model="forceRoundState"
-                            @change="setForceState('forceRoundState', $event.target.value)"
-                            class="w-full bg-gray-800 text-white rounded px-2 py-1 text-xs">
-                        <option value="">— Use Server Value —</option>
-                        <option value="open">🟢 open</option>
-                        <option value="locked">🔒 locked</option>
-                        <option value="completed">📊 completed</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-gray-500 mb-1">Force Has Result:</label>
-                    <select x-model="forceHasResult"
-                            @change="setForceState('forceHasResult', $event.target.value)"
-                            class="w-full bg-gray-800 text-white rounded px-2 py-1 text-xs">
-                        <option value="">— Use Server Value —</option>
-                        <option value="true">✅ true</option>
-                        <option value="false">❌ false</option>
-                    </select>
-                </div>
-
-                <button @click="clearAllOverrides()"
-                        class="w-full bg-red-800 hover:bg-red-700 text-white rounded px-2 py-1 text-xs">
-                    Clear All Overrides
-                </button>
-
-                <p class="text-gray-600 text-[10px]">
-                    Tip: Add ?roundState=locked to URL to test states
-                </p>
-            </div>
-        </div>
+    <div id="prediction-page" th:fragment="predictionPage" class="max-w-4xl mx-auto">
 
         <!-- Page Header -->
         <div class="bg-white rounded-lg shadow-sm mb-6">
@@ -106,8 +21,8 @@
                             <!-- State indicators -->
                             <span th:if="${isCurrentRound}" class="inline-flex items-center gap-1 text-xs sm:text-sm font-medium">
                                 <span th:if="${roundState == 'open'}" class="text-green-600">🟢 Open</span>
-                                <span th:if="${roundState == 'locked' || (roundState == 'completed' && !hasRoundResult)}" class="text-yellow-600">🔒 Locked</span>
-                                <span th:if="${roundState == 'completed' && hasRoundResult}" class="text-blue-600">📊 Finalized</span>
+                                <span th:if="${roundState == 'locked'}" class="text-yellow-600">🔒 Locked</span>
+                                <span th:if="${roundState == 'completed'}" class="text-blue-600">📊 Finalized</span>
                             </span>
                         </div>
                     </div>
@@ -202,7 +117,7 @@
                     </div>
 
                     <!-- Locked State Banner -->
-                    <div th:if="${isCurrentRound && (roundState == 'locked' || (roundState == 'completed' && !hasRoundResult))}"
+                    <div th:if="${isCurrentRound && roundState == 'locked'}"
                          class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                         <div class="flex items-start">
                             <svg class="h-5 w-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -211,16 +126,14 @@
                             <div>
                                 <p class="text-sm font-medium text-yellow-800">🔒 Round Locked</p>
                                 <p class="text-sm text-yellow-700 mt-1">
-                                    <span th:if="${roundState == 'locked'}">Matches are in progress.</span>
-                                    <span th:if="${roundState == 'completed' && !hasRoundResult}">Results are being calculated.</span>
-                                    Predictions are locked until results are finalized.
+                                    Matches are in progress. Predictions are locked until results are finalized.
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Finalized State Banner (only when round is completed with results) -->
-                    <div th:if="${isCurrentRound && roundState == 'completed' && hasRoundResult}"
+                    <!-- Finalized State Banner -->
+                    <div th:if="${isCurrentRound && roundState == 'completed'}"
                          class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <div class="flex items-start">
                             <svg class="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -229,7 +142,8 @@
                             <div>
                                 <p class="text-sm font-medium text-blue-800">📊 Round Finalized</p>
                                 <p class="text-sm text-blue-700 mt-1">
-                                    Your prediction has been graded. You scored <strong th:text="${totalScore}">156</strong> points this round.
+                                    Your prediction has been graded.
+                                    <span th:if="${totalScore != null}">You scored <strong th:text="${totalScore}">156</strong> points this round.</span>
                                 </p>
                             </div>
                         </div>
