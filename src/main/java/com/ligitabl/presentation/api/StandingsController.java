@@ -5,6 +5,7 @@ import com.ligitabl.application.command.GetStandingsCommand;
 import com.ligitabl.application.error.UseCaseError;
 import com.ligitabl.application.usecase.standing.GetMatchesUseCase;
 import com.ligitabl.application.usecase.standing.GetStandingsUseCase;
+import com.ligitabl.domain.model.season.SeasonId;
 import com.ligitabl.presentation.mapper.StandingViewMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Controller;
@@ -25,21 +26,36 @@ public class StandingsController {
     private final GetStandingsUseCase getStandingsUseCase;
     private final GetMatchesUseCase getMatchesUseCase;
     private final StandingViewMapper viewMapper;
+    private final SeasonId activeSeasonId;
 
     public StandingsController(
         GetStandingsUseCase getStandingsUseCase,
         GetMatchesUseCase getMatchesUseCase,
-        StandingViewMapper viewMapper
+        StandingViewMapper viewMapper,
+        SeasonId activeSeasonId
     ) {
         this.getStandingsUseCase = getStandingsUseCase;
         this.getMatchesUseCase = getMatchesUseCase;
         this.viewMapper = viewMapper;
+        this.activeSeasonId = activeSeasonId;
+    }
+
+    /**
+     * Display league standings page (default season).
+     */
+    @GetMapping({"/standings", "/seasons/current/standings"})
+    public String standingsDefault(
+        @RequestParam(required = false, defaultValue = "19") Integer round,
+        Model model,
+        HttpServletResponse response
+    ) {
+        return standings(activeSeasonId.value(), round, model, response);
     }
 
     /**
      * Display league standings page.
      */
-    @GetMapping("/seasons/{id}/standings")
+    @GetMapping("/seasons/{id:[0-9a-f\\-]+}/standings")
     public String standings(
         @PathVariable String id,
         @RequestParam(required = false, defaultValue = "19") Integer round,
@@ -55,9 +71,21 @@ public class StandingsController {
     }
 
     /**
+     * Display matches page (default season).
+     */
+    @GetMapping({"/matches", "/seasons/current/matches"})
+    public String matchesDefault(
+        @RequestParam(required = false, defaultValue = "19") Integer round,
+        Model model,
+        HttpServletResponse response
+    ) {
+        return matches(activeSeasonId.value(), round, model, response);
+    }
+
+    /**
      * Display matches page.
      */
-    @GetMapping("/seasons/{id}/matches")
+    @GetMapping("/seasons/{id:[0-9a-f\\-]+}/matches")
     public String matches(
         @PathVariable String id,
         @RequestParam(required = false, defaultValue = "19") Integer round,

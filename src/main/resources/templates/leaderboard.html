@@ -18,15 +18,15 @@
                             name="phase"
                             class="form-select block w-48 px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                             <option th:each="p : ${phases}"
-                                    th:value="${p}"
-                                    th:selected="${p == currentPhase}"
-                                    th:text="${p == 'FS' ? 'Full Season' :
-                                              p == 'Q1' ? 'Q1 (GW 1-9)' :
-                                              p == 'Q2' ? 'Q2 (GW 10-19)' :
-                                              p == 'Q3' ? 'Q3 (GW 20-29)' :
-                                              p == 'Q4' ? 'Q4 (GW 30-38)' :
-                                              p == 'H1' ? 'H1 (GW 1-19)' :
-                                              p == 'H2' ? 'H2 (GW 20-38)' : p}">
+                                    th:value="${p.name()}"
+                                    th:selected="${p.name() == currentPhase}"
+                                    th:text="${p.name() == 'FS' ? 'Full Season' :
+                                              p.name() == 'Q1' ? 'Q1 (GW 1-9)' :
+                                              p.name() == 'Q2' ? 'Q2 (GW 10-19)' :
+                                              p.name() == 'Q3' ? 'Q3 (GW 20-29)' :
+                                              p.name() == 'Q4' ? 'Q4 (GW 30-38)' :
+                                              p.name() == 'H1' ? 'H1 (GW 1-19)' :
+                                              p.name() == 'H2' ? 'H2 (GW 20-38)' : p.name()}">
                                 Full Season
                             </option>
                     </select>
