@@ -377,9 +377,9 @@ public class UserPredictionsController {
 
         // Return appropriate view
         if (hxRequest != null && !hxRequest.isBlank()) {
-            return "predictions/user/me :: predictionPage";
+            return "predictions :: predictionPage";
         }
-        return "predictions/user/me";
+        return "predictions";
     }
 
     /**

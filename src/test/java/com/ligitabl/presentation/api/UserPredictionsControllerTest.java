@@ -139,7 +139,7 @@ class UserPredictionsControllerTest {
             String viewName = controller.myPredictions(null, null, principal, model, response, null);
 
             // Then
-            assertEquals("predictions/user/me", viewName);
+            assertEquals("predictions", viewName);
             assertEquals(PredictionAccessMode.EDITABLE.name(), model.getAttribute("accessMode"));
             assertFalse((Boolean) model.getAttribute("isGuest"));
             assertFalse((Boolean) model.getAttribute("isReadonly"));
@@ -171,7 +171,7 @@ class UserPredictionsControllerTest {
             String viewName = controller.myPredictions(null, null, principal, model, response, null);
 
             // Then
-            assertEquals("predictions/user/me", viewName);
+            assertEquals("predictions", viewName);
             assertEquals(PredictionAccessMode.CAN_CREATE_ENTRY.name(), model.getAttribute("accessMode"));
             assertTrue((Boolean) model.getAttribute("canCreateEntry"));
         }
@@ -201,7 +201,7 @@ class UserPredictionsControllerTest {
             String viewName = controller.myPredictions(null, null, principal, model, response, "true");
 
             // Then
-            assertEquals("predictions/user/me :: predictionPage", viewName);
+            assertEquals("predictions :: predictionPage", viewName);
         }
 
         @Test
@@ -243,7 +243,7 @@ class UserPredictionsControllerTest {
             String viewName = controller.guestPredictions(null, model, response, null);
 
             // Then
-            assertEquals("predictions/user/me", viewName);
+            assertEquals("predictions", viewName);
             assertEquals(PredictionAccessMode.READONLY_GUEST.name(), model.getAttribute("accessMode"));
             assertTrue((Boolean) model.getAttribute("isGuest"));
         }
@@ -279,7 +279,7 @@ class UserPredictionsControllerTest {
 
             // Then
             // Should be treated as /me endpoint
-            assertEquals("predictions/user/me", viewName);
+            assertEquals("predictions", viewName);
         }
 
         @Test
@@ -308,7 +308,7 @@ class UserPredictionsControllerTest {
             String viewName = controller.userPredictions(targetUserId, null, principal, model, response, null);
 
             // Then
-            assertEquals("predictions/user/me", viewName);
+            assertEquals("predictions", viewName);
             assertEquals(PredictionAccessMode.READONLY_VIEWING_OTHER.name(), model.getAttribute("accessMode"));
             assertTrue((Boolean) model.getAttribute("isViewingOther"));
             assertEquals("John Doe", model.getAttribute("targetDisplayName"));
@@ -335,7 +335,7 @@ class UserPredictionsControllerTest {
             String viewName = controller.userPredictions(invalidUserId, null, null, model, response, null);
 
             // Then
-            assertEquals("predictions/user/me", viewName);
+            assertEquals("predictions", viewName);
             assertEquals(PredictionAccessMode.READONLY_USER_NOT_FOUND.name(), model.getAttribute("accessMode"));
             assertTrue((Boolean) model.getAttribute("isUserNotFound"));
         }
