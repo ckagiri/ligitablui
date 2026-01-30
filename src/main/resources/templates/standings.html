@@ -6,22 +6,59 @@
 <div layout:fragment="content">
     <div class="bg-white rounded-lg shadow-sm">
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200">
-            <div class="flex justify-between items-center">
-                <h1 class="text-2xl font-bold text-gray-900">League Standings</h1>
-                <div>
-                    <select th:attr="hx-get=@{/seasons/{id}/standings(id=${seasonId})}"
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+            <div class="flex flex-col gap-3">
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-900">League Standings</h1>
+                <div class="flex items-center justify-between gap-2">
+                    <!-- Previous Button -->
+                    <a th:href="@{/seasons/current/standings(round=${currentRound - 1})}"
+                       th:if="${currentRound > 1}"
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition">
+                        <svg class="h-4 w-4 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        <span class="hidden sm:inline">Previous</span>
+                    </a>
+                    <span th:if="${currentRound <= 1}"
+                          class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-400 bg-white opacity-50 cursor-not-allowed">
+                        <svg class="h-4 w-4 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        <span class="hidden sm:inline">Previous</span>
+                    </span>
+
+                    <!-- Round Dropdown -->
+                    <select th:attr="hx-get=@{/seasons/current/standings}"
                             hx-trigger="change"
-                            hx-target="#standings-content"
-                            hx-swap="innerHTML swap:300ms"
+                            hx-target="body"
+                            hx-swap="outerHTML"
+                            hx-push-url="true"
+                            hx-include="this"
                             name="round"
-                            class="form-select block w-48 px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        <option th:value="19" th:selected="${currentRound == 19}">Current (GW 19)</option>
-                        <option th:value="18" th:selected="${currentRound == 18}">GW 18</option>
-                        <option th:value="17" th:selected="${currentRound == 17}">GW 17</option>
-                        <option th:value="16" th:selected="${currentRound == 16}">GW 16</option>
-                        <option th:value="15" th:selected="${currentRound == 15}">GW 15</option>
+                            class="flex-1 sm:flex-initial sm:w-auto sm:min-w-[200px] px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <option th:each="r : ${#numbers.sequence(1, latestRound)}"
+                                th:value="${r}"
+                                th:selected="${r == currentRound}"
+                                th:text="${r == latestRound ? 'GW ' + r + ' (Current)' : 'GW ' + r}">
+                        </option>
                     </select>
+
+                    <!-- Next Button -->
+                    <a th:href="@{/seasons/current/standings(round=${currentRound + 1})}"
+                       th:if="${currentRound < latestRound}"
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition">
+                        <span class="hidden sm:inline">Next</span>
+                        <svg class="h-4 w-4 sm:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                    <span th:if="${currentRound >= latestRound}"
+                          class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-400 bg-white opacity-50 cursor-not-allowed">
+                        <span class="hidden sm:inline">Next</span>
+                        <svg class="h-4 w-4 sm:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </span>
                 </div>
             </div>
         </div>
@@ -32,10 +69,10 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                            <th scope="col" class="sticky left-0 z-20 bg-gray-50 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
                                 Pos
                             </th>
-                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="sticky left-[48px] z-20 bg-gray-50 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Team
                             </th>
                             <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
@@ -66,12 +103,12 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         <tr th:each="standing : ${standings}"
-                            class="hover:bg-gray-50 transition">
-                            <td class="px-3 py-4 whitespace-nowrap text-sm font-bold text-gray-900"
+                            class="group hover:bg-gray-50 transition">
+                            <td class="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-4 whitespace-nowrap text-sm font-bold text-gray-900"
                                 th:text="${standing.position}">
                                 1
                             </td>
-                            <td class="px-3 py-4 whitespace-nowrap">
+                            <td class="sticky left-[48px] z-10 bg-white group-hover:bg-gray-50 px-3 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
                                     <div class="h-6 w-6 mr-2 bg-gray-200 rounded flex items-center justify-center text-xs font-bold"
                                          th:text="${standing.teamCode}">

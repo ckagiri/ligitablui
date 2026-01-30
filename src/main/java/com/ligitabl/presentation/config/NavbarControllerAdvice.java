@@ -23,8 +23,7 @@ import java.security.Principal;
  * <p>Navbar label logic:
  * <ul>
  *   <li>Not logged in → "Predictions" (links to /predictions/user/guest)</li>
- *   <li>Logged in + no entry → "Predictions" (links to /predictions/user/me)</li>
- *   <li>Logged in + has entry → "My Predictions" (links to /predictions/user/me)</li>
+ *   <li>Logged in → "My Predictions" (links to /predictions/user/me)</li>
  * </ul>
  */
 @ControllerAdvice
@@ -66,17 +65,7 @@ public class NavbarControllerAdvice {
 
     @ModelAttribute("predictionsNavLabel")
     public String predictionsNavLabel(Principal principal) {
-        if (principal == null) {
-            return "Predictions";
-        }
-
-        try {
-            UserId userId = UserId.of(principal.getName());
-            boolean hasEntry = mainContestEntryRepository.existsByUserIdAndContestId(userId, mainContestId);
-            return hasEntry ? "My Predictions" : "Predictions";
-        } catch (IllegalArgumentException e) {
-            return "Predictions";
-        }
+        return principal != null ? "My Predictions" : "Predictions";
     }
 
     @ModelAttribute("predictionsNavLink")

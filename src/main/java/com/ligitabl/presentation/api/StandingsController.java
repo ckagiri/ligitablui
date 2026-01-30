@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 public class StandingsController {
 
+    private static final int LATEST_ROUND = 19; // TODO: Make dynamic
+
     private final GetStandingsUseCase getStandingsUseCase;
     private final GetMatchesUseCase getMatchesUseCase;
     private final StandingViewMapper viewMapper;
@@ -111,6 +113,7 @@ public class StandingsController {
         model.addAttribute("pageTitle", "Standings");
         model.addAttribute("seasonId", result.seasonId());
         model.addAttribute("currentRound", result.round());
+        model.addAttribute("latestRound", LATEST_ROUND);
         model.addAttribute("standings", standingsDTOs);
 
         return "standings";
@@ -125,6 +128,7 @@ public class StandingsController {
         model.addAttribute("pageTitle", "Matches");
         model.addAttribute("seasonId", result.seasonId());
         model.addAttribute("currentRound", result.round());
+        model.addAttribute("latestRound", LATEST_ROUND);
         model.addAttribute("matches", matchesDTOs);
         model.addAttribute("hasLiveMatches", result.hasLiveMatches());
         model.addAttribute("liveCount", result.liveCount());
