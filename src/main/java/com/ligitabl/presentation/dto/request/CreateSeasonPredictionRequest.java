@@ -10,52 +10,18 @@ import java.util.Objects;
  * Request DTO for creating initial season prediction.
  *
  * <p>Used when a user first submits their season prediction (joins the competition).
- * Contains the full list of 20 team rankings.</p>
+ * Contains an ordered list of team codes — position is implied by array index
+ * (index 0 = position 1, index 1 = position 2, etc.).</p>
+ *
+ * <p>Example JSON: {@code { "teamCodes": ["MCI", "ARS", "LIV", ...] }}</p>
  */
-public class CreateSeasonPredictionRequest {
-
-    private final List<TeamRankingDTO> teamRankings;
-
+public record CreateSeasonPredictionRequest(
+    @JsonProperty("teamCodes") List<String> teamCodes
+) {
     @JsonCreator
     public CreateSeasonPredictionRequest(
-        @JsonProperty("teamRankings") List<TeamRankingDTO> teamRankings
+        @JsonProperty("teamCodes") List<String> teamCodes
     ) {
-        this.teamRankings = Objects.requireNonNull(teamRankings, "teamRankings is required");
-    }
-
-    public List<TeamRankingDTO> getTeamRankings() {
-        return teamRankings;
-    }
-
-    /**
-     * Nested DTO for team ranking in the request.
-     */
-    public static class TeamRankingDTO {
-        private final String teamId;
-        private final int position;
-
-        @JsonCreator
-        public TeamRankingDTO(
-            @JsonProperty("teamId") String teamId,
-            @JsonProperty("position") int position
-        ) {
-            this.teamId = Objects.requireNonNull(teamId, "teamId is required");
-            this.position = position;
-        }
-
-        public String getTeamId() {
-            return teamId;
-        }
-
-        public int getPosition() {
-            return position;
-        }
-    }
-
-    @Override
-    public String toString() {
-        return "CreateSeasonPredictionRequest{" +
-               "teamRankings=" + teamRankings.size() + " teams" +
-               '}';
+        this.teamCodes = List.copyOf(Objects.requireNonNull(teamCodes, "teamCodes is required"));
     }
 }

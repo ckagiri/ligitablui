@@ -16,18 +16,18 @@ import java.util.stream.Collectors;
 
 /**
  * Maps between domain models and presentation DTOs for season predictions.
- *
- * <p>This mapper is part of the presentation layer and handles conversions
- * between application/domain objects and HTTP request/response DTOs.</p>
  */
 @Component
 public class SeasonPredictionViewMapper {
 
+    private final TeamCodeResolver teamCodeResolver;
+
+    public SeasonPredictionViewMapper(TeamCodeResolver teamCodeResolver) {
+        this.teamCodeResolver = teamCodeResolver;
+    }
+
     /**
      * Map GetSeasonPredictionUseCase result to response DTO.
-     *
-     * @param result the use case result with rankings and source
-     * @return season prediction response DTO
      */
     public SeasonPredictionResponse toResponse(GetSeasonPredictionUseCase.RankingsWithSource result) {
         List<RankingDTO> rankingDTOs = result.rankings().stream()
@@ -37,15 +37,12 @@ public class SeasonPredictionViewMapper {
         return new SeasonPredictionResponse(
             result.source().name(),
             rankingDTOs,
-            null // No atRound for fallback sources
+            null
         );
     }
 
     /**
      * Map SeasonPrediction domain model to response DTO.
-     *
-     * @param prediction the season prediction
-     * @return season prediction response DTO
      */
     public SeasonPredictionResponse toResponse(SeasonPrediction prediction) {
         List<RankingDTO> rankingDTOs = prediction.getRankings().stream()
@@ -61,92 +58,39 @@ public class SeasonPredictionViewMapper {
 
     /**
      * Map CreateSeasonPredictionUseCase result to response DTO.
-     *
-     * @param result the created result with prediction and contest entry
-     * @return season prediction response DTO
      */
     public SeasonPredictionResponse toResponse(CreateSeasonPredictionUseCase.CreatedResult result) {
         return toResponse(result.prediction());
     }
 
     /**
-     * Map CreateSeasonPredictionRequest to list of TeamRanking domain objects.
-     *
-     * @param request the create request
-     * @return list of team rankings
+     * Convert a CreateSeasonPredictionRequest (team codes) to TeamRankings.
      */
     public List<TeamRanking> toTeamRankings(CreateSeasonPredictionRequest request) {
-        return request.getTeamRankings().stream()
-            .map(dto -> TeamRanking.create(
-                TeamId.of(dto.getTeamId()),
-                dto.getPosition()
-            ))
-            .collect(Collectors.toList());
+        return teamCodeResolver.toRankings(request.teamCodes());
     }
 
     /**
      * Map TeamRanking domain object to RankingDTO.
-     *
-     * @param ranking the team ranking
-     * @return ranking DTO
      */
     public RankingDTO toRankingDTO(TeamRanking ranking) {
-        // For now, create basic team DTO from TeamId
-        // In a real implementation, we'd look up full team details from a repository
         RankingDTO.TeamDTO teamDTO = createTeamDTO(ranking.teamId());
-
         return new RankingDTO(ranking.position(), teamDTO);
     }
 
-    /**
-     * Create a basic TeamDTO from TeamId.
-     *
-     * <p>TODO: In a real implementation, look up full team details from a repository/service.
-     * For now, we extract the code from the team ID format.</p>
-     *
-     * @param teamId the team ID
-     * @return team DTO
-     */
     private RankingDTO.TeamDTO createTeamDTO(TeamId teamId) {
         String id = teamId.value();
-
-        // Extract team code from ID (format: "team-{code}-{uuid}")
-        String code = extractTeamCode(id);
+        String code = teamCodeResolver.extractCode(teamId);
         String name = getTeamName(code);
 
         return new RankingDTO.TeamDTO(
             id,
             code,
             name,
-            null  // Crest URLs not used in this view
+            null
         );
     }
 
-    /**
-     * Extract team code from team ID.
-     *
-     * @param teamId the team ID string
-     * @return team code (e.g., "MCI", "ARS")
-     */
-    private String extractTeamCode(String teamId) {
-        // Format: "team-mci-000000000001"
-        if (teamId.startsWith("team-")) {
-            String[] parts = teamId.split("-");
-            if (parts.length >= 2) {
-                return parts[1].toUpperCase();
-            }
-        }
-        return "UNK"; // Unknown team
-    }
-
-    /**
-     * Get team name from team code.
-     *
-     * <p>TODO: In a real implementation, look up from repository.</p>
-     *
-     * @param code the team code
-     * @return team name
-     */
     private String getTeamName(String code) {
         return switch (code) {
             case "MCI" -> "Manchester City";
